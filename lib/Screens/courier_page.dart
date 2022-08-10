@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-
+import 'package:courier_app/Location/CourierMap.dart';
+import '../Location/CourierBuildMap.dart';
 import '../constant.dart';
 
 class CourierPage extends StatefulWidget {
@@ -47,32 +48,34 @@ class _CourierPageState extends State<CourierPage> {
               ),
             ),
             const Divider(
-              height: 20,
-              thickness: 1,
+              height: 5,
+              thickness: 2,
             ),
-            Container(
-              height: 200,
-              width: double.infinity,
-              color: Colors.redAccent,
-              child: const Align(
-                  alignment: Alignment.center,
-                  child: Text("HARİTA GELECEK...")),
+            const Divider(
+              height: 10,
+              thickness: 2,
             ),
             const SizedBox(
-              height: 15,
+              height: 8,
             ),
-            SizedBox(
-              height: size.height * 0.5,
-              width: size.width * 1.5,
-              child: Lottie.network(
-                  'https://assets10.lottiefiles.com/packages/lf20_3ls8a1y5.json'),
+            const CourierCard(
+              title: "Product Type",
+              content: "Hamburger",
+              imagePath: "",
             ),
-            const SizedBox(
-              height: 15,
+            const CourierCard(
+              title: "Product Content",
+              content: "1 Hamburger",
+              imagePath: "",
+            ),
+            const CourierCard(
+              title: "Payment Method",
+              content: "Credit Card",
+              imagePath: "",
             ),
             Container(
-              color: Colors.amber[100],
-              padding: const EdgeInsets.only(top: 15, bottom: 15),
+              color: Colors.amber[200],
+              padding: const EdgeInsets.only(top: 5, bottom: 5),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -81,11 +84,11 @@ class _CourierPageState extends State<CourierPage> {
                   ),
                   const Icon(
                     Icons.motorcycle,
-                    size: 60,
+                    size: 40,
                   ),
                   Text(
                     courierState,
-                    style: const TextStyle(fontSize: 24),
+                    style: const TextStyle(fontSize: 20),
                   ),
                   Switch(
                     value: isSwitched,
@@ -106,26 +109,27 @@ class _CourierPageState extends State<CourierPage> {
                 ],
               ),
             ),
-            const SizedBox(
-              height: 8,
-            ),
-            const CourierCard(
-              title: "Product Type",
-              content: "Hamburger",
-              imagePath: "",
-            ),
-            const CourierCard(
-              title: "Product Content",
-              content: "1 Hamburger",
-              imagePath: "",
-            ),
-            const CourierCard(
-              title: "Payment Method",
-              content: "Credit Card",
-              imagePath: "",
+            SizedBox(
+              height: size.height * 0.38,
+              width: size.width * 1,
+              child: Lottie.network(
+                  "https://assets10.lottiefiles.com/packages/lf20_3ls8a1y5.json"),
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        highlightElevation: 50,
+        elevation: 12,
+        backgroundColor: Colors.blue.withOpacity(0.8),
+        child: Icon(
+          Icons.gps_fixed,
+          color: Colors.white,
+        ),
+        onPressed: () async {
+          Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (context) => CourierBuildMap()));
+        },
       ),
     );
   }
@@ -150,7 +154,7 @@ class CourierCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       child: Container(
-        height: size.height * 0.16,
+        height: size.height * 0.13,
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             color: KprimaryColor,
