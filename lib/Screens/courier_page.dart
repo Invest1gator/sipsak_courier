@@ -1,3 +1,4 @@
+import 'package:courier_app/local_notificaiton_service.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -11,6 +12,15 @@ class CourierPage extends StatefulWidget {
 }
 
 class _CourierPageState extends State<CourierPage> {
+  late final LocalNotificationService service;
+
+  @override
+  void initState() {
+    service = LocalNotificationService();
+    service.intialize();
+    super.initState();
+  }
+
   bool isSwitched = false;
   String courierState = "Kurye Meşgul";
 
@@ -25,6 +35,19 @@ class _CourierPageState extends State<CourierPage> {
           children: [
             const SizedBox(
               height: 30,
+            ),
+            GestureDetector(
+              onTap: () async {
+                await service.showNotification(
+                    id: 0,
+                    title: 'Sipariş Var!',
+                    body: 'Lütfen Sipariş için haritadaki konuma gidiniz!');
+              },
+              child: const SizedBox(
+                height: 100,
+                width: 100,
+                child: Text("Send Local Notification"),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
