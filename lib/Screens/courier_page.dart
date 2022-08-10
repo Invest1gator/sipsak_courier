@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:courier_app/Location/CourierMap.dart';
+import 'package:page_transition/page_transition.dart';
 import '../Location/CourierBuildMap.dart';
 import '../constant.dart';
 
@@ -126,9 +126,15 @@ class _CourierPageState extends State<CourierPage> {
           Icons.gps_fixed,
           color: Colors.white,
         ),
-        onPressed: () async {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (context) => CourierBuildMap()));
+        onPressed: () {
+          Navigator.push(
+            context,
+            PageTransition(
+              type: PageTransitionType.rightToLeftWithFade,
+              duration: Duration(milliseconds: 200),
+              child: CourierBuildMap(),
+            ),
+          );
         },
       ),
     );

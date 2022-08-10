@@ -6,6 +6,8 @@ import 'CourierMap.dart';
 import '../constant.dart';
 
 class CourierBuildMap extends StatefulWidget {
+  const CourierBuildMap({Key? key}) : super(key: key);
+
   @override
   HomePageState createState() => HomePageState();
 }
