@@ -57,6 +57,8 @@ dependencies:
   geocode: ^1.0.1
   carousel_slider: ^4.1.1
   shimmer: ^2.0.0
+  google_directions_api: ^0.9.1
+  flutter_polyline_points: ^1.0.0
 
 dev_dependencies:
   flutter_test:

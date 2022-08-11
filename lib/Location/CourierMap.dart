@@ -7,6 +7,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../constant.dart';
 import 'package:geocoding/geocoding.dart';
 
+import 'FastDeliveryAlgrorithm.dart';
+
 late LatLng currentLatLng;
 
 class MapPage extends StatefulWidget {
@@ -15,7 +17,7 @@ class MapPage extends StatefulWidget {
 }
 
 class HomePageState extends State<MapPage> {
-  Completer<GoogleMapController> _controller = Completer();
+  final Completer<GoogleMapController> _controller = Completer();
   late GoogleMapController mapController;
 
   @override
@@ -94,6 +96,9 @@ class HomePageState extends State<MapPage> {
                     LatLng(position.latitude, position.longitude).latitude,
                     LatLng(position.latitude, position.longitude).longitude,
                   );
+
+                  generateList();
+
                   setState(() {
                     showPopUp = true;
                   });
@@ -373,7 +378,7 @@ class HomePageState extends State<MapPage> {
     return Align(
       alignment: Alignment.topLeft,
       child: IconButton(
-          icon: Icon(FontAwesomeIcons.magnifyingGlassMinus,
+          icon: const Icon(FontAwesomeIcons.magnifyingGlassMinus,
               color: kOrderPageButtonColor),
           onPressed: () {
             zoomVal--;
@@ -386,7 +391,7 @@ class HomePageState extends State<MapPage> {
     return Align(
       alignment: Alignment.topRight,
       child: IconButton(
-          icon: Icon(FontAwesomeIcons.magnifyingGlassPlus,
+          icon: const Icon(FontAwesomeIcons.magnifyingGlassPlus,
               color: kOrderPageButtonColor),
           onPressed: () {
             zoomVal++;
@@ -420,16 +425,17 @@ class HomePageState extends State<MapPage> {
     )));
   }
 
+/*
   Widget _buildContainer() {
     return Align(
       alignment: Alignment.bottomLeft,
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 20.0),
+        margin: const EdgeInsets.symmetric(vertical: 20.0),
         height: 150.0,
         child: ListView(
           scrollDirection: Axis.horizontal,
           children: <Widget>[
-            SizedBox(width: 5.0),
+            const SizedBox(width: 5.0),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: _boxes(
@@ -438,7 +444,7 @@ class HomePageState extends State<MapPage> {
                   27.190210,
                   "Kartal Büfe"),
             ),
-            SizedBox(width: 5.0),
+            const SizedBox(width: 5.0),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: _boxes(
@@ -447,7 +453,7 @@ class HomePageState extends State<MapPage> {
                   27.203072,
                   "Dönerci Ömer Usta"),
             ),
-            SizedBox(width: 5.0),
+            const SizedBox(width: 5.0),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: _boxes(
@@ -467,36 +473,34 @@ class HomePageState extends State<MapPage> {
       onTap: () {
         _gotoLocation(lat, long);
       },
-      child: Container(
-        child: new FittedBox(
-          child: Material(
-              color: Colors.white,
-              elevation: 14.0,
-              borderRadius: BorderRadius.circular(24.0),
-              shadowColor: Color(0x802196F3),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  Container(
-                    width: 180,
-                    height: 200,
-                    child: ClipRRect(
-                      borderRadius: new BorderRadius.circular(24.0),
-                      child: Image(
-                        fit: BoxFit.fill,
-                        image: NetworkImage(_image),
-                      ),
+      child: FittedBox(
+        child: Material(
+            color: Colors.white,
+            elevation: 14.0,
+            borderRadius: BorderRadius.circular(24.0),
+            shadowColor: Color(0x802196F3),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Container(
+                  width: 180,
+                  height: 200,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24.0),
+                    child: Image(
+                      fit: BoxFit.fill,
+                      image: NetworkImage(_image),
                     ),
                   ),
-                  Container(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: myDetailsContainer1(restaurantName),
-                    ),
+                ),
+                Container(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: myDetailsContainer1(restaurantName),
                   ),
-                ],
-              )),
-        ),
+                ),
+              ],
+            )),
       ),
     );
   }
@@ -595,12 +599,11 @@ class HomePageState extends State<MapPage> {
       ],
     );
   }
-
+*/
 ////////////////////////////////////////////////////////////////////////////////
   Widget _buildGoogleMap(BuildContext context) {
     // Builds google map with initial manuel target.
     // Updates the target "_gotoLocation" function
-
     /*
     Future<Position> myLatLng() async {
       Position position = await _determinePosition();
@@ -609,7 +612,7 @@ class HomePageState extends State<MapPage> {
     */
     Set<Marker> _markers = Set<Marker>();
 
-    return Container(
+    return SizedBox(
       height: !showPopUp
           ? MediaQuery.of(context).size.height
           : MediaQuery.of(context).size.height * 0.42,
@@ -622,8 +625,8 @@ class HomePageState extends State<MapPage> {
         markers: _markers,
 
         mapType: MapType.normal,
-        initialCameraPosition:
-            CameraPosition(target: LatLng(38.457844, 27.206515), zoom: 14),
+        initialCameraPosition: const CameraPosition(
+            target: LatLng(38.457844, 27.206515), zoom: 14),
         onMapCreated: (GoogleMapController controller) {
           _controller.complete(controller);
         },
@@ -707,8 +710,6 @@ Future<Position> _determinePosition() async {
 
   Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.best);
-
-  // String _address = ""; // create this variable
 
   List<Placemark> newPlace =
       await placemarkFromCoordinates(position.latitude, position.longitude);
