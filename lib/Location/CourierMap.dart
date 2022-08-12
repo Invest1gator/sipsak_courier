@@ -1,15 +1,27 @@
 import 'dart:async';
+import 'package:courier_app/models/directionDetails.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocode/geocode.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
 import '../constant.dart';
 import 'package:geocoding/geocoding.dart';
-
+import 'package:http/http.dart' as http;
 import 'FastDeliveryAlgrorithm.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
+import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+
+// https://maps.googleapis.com/maps/api/directions/json?origin=38.396901,%2027.070646&destination=38.467249,%2027.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU
 
 late LatLng currentLatLng;
+String googleAPiKey = "AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+LatLng startLocation = const LatLng(38.396901, 27.070646);
+LatLng endLocation = const LatLng(38.467249, 27.208174);
 
 class MapPage extends StatefulWidget {
   @override
@@ -19,25 +31,74 @@ class MapPage extends StatefulWidget {
 class HomePageState extends State<MapPage> {
   final Completer<GoogleMapController> _controller = Completer();
   late GoogleMapController mapController;
+  Map<PolylineId, Polyline> polylines = {}; //polylines to show direction
+  Set<Marker> _markers = Set<Marker>();
+  PolylinePoints polylinePoints = PolylinePoints();
 
   @override
   void initState() {
+    _markers.add(Marker(
+      //add start location marker
+      markerId: MarkerId(startLocation.toString()),
+      position: startLocation, //position of marker
+      infoWindow: const InfoWindow(
+        //popup info
+        title: 'Starting Point ',
+        snippet: 'Start Marker',
+      ),
+      icon: BitmapDescriptor.defaultMarker, //Icon for Marker
+    ));
+
+    _markers.add(Marker(
+      //add distination location marker
+      markerId: MarkerId(endLocation.toString()),
+      position: endLocation, //position of marker
+      infoWindow: const InfoWindow(
+        //popup info
+        title: 'Destination Point ',
+        snippet: 'Destination Marker',
+      ),
+      icon: BitmapDescriptor.defaultMarker, //Icon for Marker
+    ));
     super.initState();
+
+    getDirections(); //fetch direction polylines from Google API
   }
 
-  /*
-  void goToCurrentLoc() {
-    Geolocator.getCurrentPosition().then((currLocation) {
-      setState(() {
-        currentLatLng =
-            new LatLng(currLocation.latitude, currLocation.longitude);
+  getDirections() async {
+    List<LatLng> polylineCoordinates = [];
+
+    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+      googleAPiKey,
+      PointLatLng(startLocation.latitude, startLocation.longitude),
+      PointLatLng(endLocation.latitude, endLocation.longitude),
+      travelMode: TravelMode.driving,
+    );
+
+    if (result.points.isNotEmpty) {
+      result.points.forEach((PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
       });
-    });
-
-    print("currentLatLng : $currentLatLng.longitude  $currentLatLng.latitude ");
-    _gotoLocation(currentLatLng.latitude, currentLatLng.longitude);
+    } else {
+      print("POLYLINE LAR BOS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      print(result.errorMessage);
+    }
+    print("my points");
+    print(result.points);
+    addPolyLine(polylineCoordinates);
   }
-*/
+
+  addPolyLine(List<LatLng> polylineCoordinates) {
+    PolylineId id = PolylineId("poly");
+    Polyline polyline = Polyline(
+      polylineId: id,
+      color: Colors.deepPurpleAccent,
+      points: polylineCoordinates,
+      width: 8,
+    );
+    polylines[id] = polyline;
+    setState(() {});
+  }
 
   double zoomVal = 5.0;
   bool showPopUp = false;
@@ -67,7 +128,7 @@ class HomePageState extends State<MapPage> {
                 highlightElevation: 50,
                 elevation: 12,
                 backgroundColor: Colors.blue.withOpacity(0.8),
-                child: Icon(
+                child: const Icon(
                   Icons.gps_fixed,
                   color: Colors.white,
                 ),
@@ -425,6 +486,149 @@ class HomePageState extends State<MapPage> {
     )));
   }
 
+////////////////////////////////////////////////////////////////////////////////
+  Widget _buildGoogleMap(BuildContext context) {
+    // Builds google map with initial manuel target.
+    // Updates the target "_gotoLocation" function
+
+    return SizedBox(
+      height: !showPopUp
+          ? MediaQuery.of(context).size.height
+          : MediaQuery.of(context).size.height * 0.42,
+      width: MediaQuery.of(context).size.width,
+      child: GoogleMap(
+        myLocationEnabled: true,
+        compassEnabled: true,
+        myLocationButtonEnabled: false,
+        tiltGesturesEnabled: false,
+        markers: _markers,
+        polylines: Set<Polyline>.of(polylines.values),
+        mapType: MapType.normal,
+        initialCameraPosition: const CameraPosition(
+            target: LatLng(38.457844, 27.206515), zoom: 14),
+        onMapCreated: (GoogleMapController controller) {
+          _controller.complete(controller);
+        },
+
+        //markers: {kartalMarker, donerciomerustaMarker, donercivedatMarker},
+      ),
+    );
+  }
+
+  Future<void> _gotoLocation(double lat, double long) async {
+    final GoogleMapController controller = await _controller.future;
+    print("XXXXXXXXXXXX  LOC : $lat  $long ");
+    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+      target: LatLng(lat, long),
+      zoom: 18,
+    )));
+  }
+}
+
+Future<Position> _determinePosition() async {
+  bool serviceEnabled;
+  LocationPermission permission;
+  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+  if (!serviceEnabled) {
+    return Future.error('Location services are disabled');
+  }
+  permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      return Future.error("Location permission denied");
+    }
+  }
+  if (permission == LocationPermission.deniedForever) {
+    return Future.error('Location permissions are permanently denied');
+  }
+
+  Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.best);
+
+  List<Placemark> newPlace =
+      await placemarkFromCoordinates(position.latitude, position.longitude);
+
+  // obtain loc details
+  var init_pos = LatLng(position.latitude, position.longitude);
+  var final_pos =
+      LatLng(position.latitude + 0.0005, position.longitude + 0.0005);
+  obtainPlaceDirectionDetails(startLocation, endLocation);
+  print(
+      "obtainPlaceDirectionDetails(init_pos, final_pos); XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX :");
+
+  Placemark placeMark = newPlace.first;
+
+  String? name = placeMark.name;
+  String? name2 = placeMark.subAdministrativeArea;
+  String? name3 = placeMark.thoroughfare;
+  String? subLocality = placeMark.subLocality;
+  String? locality = placeMark.locality;
+  String? administrativeArea = placeMark.administrativeArea;
+  String? postalCode = placeMark.postalCode;
+  String? country = placeMark.country;
+  String address =
+      "${name}, ${name2}, ${name3}, ${subLocality}, ${locality}, ${administrativeArea} ${postalCode}, ${country}";
+
+  print(address);
+
+  print(position);
+
+  return position;
+}
+
+// COMMENTLER
+
+void obtainPlaceDirectionDetails(LatLng initPos, LatLng finalPos) async {
+  var mapKey = "AAIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+  String directionURL =
+      "https://maps.googleapis.com/maps/api/directions/json?origin=${initPos.latitude},${initPos.longitude}&destination=${finalPos.latitude},${finalPos.longitude}&key=$mapKey";
+  var res = await http.get(Uri.parse(directionURL));
+  var responseData = convert.jsonDecode(res.body);
+
+  // DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
+
+  int distance = 1;
+  String duration = '';
+
+  distance = responseData["routes"]["legs"]["distance"]["value"];
+
+  // duration = leg['duration']['text'];
+
+  print(
+      "xx11111111111111111111111111111111111111111111111111111111111111111111111111111111111DISTANCExx -----> $distance");
+// https://maps.googleapis.com/maps/api/directions/json?origin=38.396901,%2027.070646&destination=38.467249,%2027.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU
+  // var response = await Dio().get(directionURL);
+  // response = response;
+  // print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA $response");
+
+  // return distance;
+}
+
+/*
+  Dio dio = Dio();
+  Response response = await dio.get(
+      "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=40.6655101,-73.89188969999998&destinations=40.6905615%2C,-73.9976592&key=AIzaSyDi48IpaybbVdmJ9rTgSVfnTiOxxv8GAPo");
+  print("XXXXXXXXXXXXXXXXXXXXXXX::::");
+  print(response.data);
+  print("XXXXXXXXXXXXXXXXXXXXXXX::::");
+  */
+
+/*
+  void goToCurrentLoc() {
+    Geolocator.getCurrentPosition().then((currLocation) {
+      setState(() {
+        currentLatLng =
+            new LatLng(currLocation.latitude, currLocation.longitude);
+      });
+    });
+
+    print("currentLatLng : $currentLatLng.longitude  $currentLatLng.latitude ");
+    _gotoLocation(currentLatLng.latitude, currentLatLng.longitude);
+  }
+*/
+
 /*
   Widget _buildContainer() {
     return Align(
@@ -600,50 +804,6 @@ class HomePageState extends State<MapPage> {
     );
   }
 */
-////////////////////////////////////////////////////////////////////////////////
-  Widget _buildGoogleMap(BuildContext context) {
-    // Builds google map with initial manuel target.
-    // Updates the target "_gotoLocation" function
-    /*
-    Future<Position> myLatLng() async {
-      Position position = await _determinePosition();
-      return position;
-    }
-    */
-    Set<Marker> _markers = Set<Marker>();
-
-    return SizedBox(
-      height: !showPopUp
-          ? MediaQuery.of(context).size.height
-          : MediaQuery.of(context).size.height * 0.42,
-      width: MediaQuery.of(context).size.width,
-      child: GoogleMap(
-        myLocationEnabled: true,
-        compassEnabled: true,
-        myLocationButtonEnabled: false,
-        tiltGesturesEnabled: false,
-        markers: _markers,
-
-        mapType: MapType.normal,
-        initialCameraPosition: const CameraPosition(
-            target: LatLng(38.457844, 27.206515), zoom: 14),
-        onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
-        },
-
-        //markers: {kartalMarker, donerciomerustaMarker, donercivedatMarker},
-      ),
-    );
-  }
-
-  Marker myloc = Marker(
-    markerId: MarkerId('kartalbufe'),
-    position: LatLng(38.432559, 27.190210),
-    infoWindow: InfoWindow(title: 'Kartal Büfe'),
-    icon: BitmapDescriptor.defaultMarkerWithHue(
-      BitmapDescriptor.hueOrange,
-    ),
-  );
 
 /*
   Marker kartalMarker = Marker(
@@ -672,67 +832,6 @@ class HomePageState extends State<MapPage> {
     ),
   );
 */
-
-  Future<void> _gotoLocation(double lat, double long) async {
-    final GoogleMapController controller = await _controller.future;
-    print("XXXXXXXXXXXX  LOC : $lat  $long ");
-    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-      target: LatLng(lat, long),
-      zoom: 18,
-    )));
-  }
-}
-
-class Pos {
-  String? title;
-  String? address;
-  String? buildingNo;
-}
-
-Future<Position> _determinePosition() async {
-  bool serviceEnabled;
-  LocationPermission permission;
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-  if (!serviceEnabled) {
-    return Future.error('Location services are disabled');
-  }
-  permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      return Future.error("Location permission denied");
-    }
-  }
-  if (permission == LocationPermission.deniedForever) {
-    return Future.error('Location permissions are permanently denied');
-  }
-
-  Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.best);
-
-  List<Placemark> newPlace =
-      await placemarkFromCoordinates(position.latitude, position.longitude);
-
-  Placemark placeMark = newPlace.first;
-
-  String? name = placeMark.name;
-  String? name2 = placeMark.subAdministrativeArea;
-  String? name3 = placeMark.thoroughfare;
-  String? subLocality = placeMark.subLocality;
-  String? locality = placeMark.locality;
-  String? administrativeArea = placeMark.administrativeArea;
-  String? postalCode = placeMark.postalCode;
-  String? country = placeMark.country;
-  String address =
-      "${name}, ${name2}, ${name3}, ${subLocality}, ${locality}, ${administrativeArea} ${postalCode}, ${country}";
-
-  print(address);
-
-  print(position);
-
-  return position;
-}
 
 /*
   void getLocationOnChanged() async {
