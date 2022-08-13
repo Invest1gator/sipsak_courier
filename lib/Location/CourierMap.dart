@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:courier_app/models/directionDetails.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -551,12 +552,11 @@ Future<Position> _determinePosition() async {
       await placemarkFromCoordinates(position.latitude, position.longitude);
 
   // obtain loc details
-  var init_pos = LatLng(position.latitude, position.longitude);
-  var final_pos =
-      LatLng(position.latitude + 0.0005, position.longitude + 0.0005);
-  obtainPlaceDirectionDetails(startLocation, endLocation);
-  print(
-      "obtainPlaceDirectionDetails(init_pos, final_pos); XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX :");
+
+  DirectionDetails directionDetails2 = DirectionDetails(10, 10, "", "", "");
+  directionDetails2 = obtainPlaceDirectionDetails(startLocation, endLocation)
+      as DirectionDetails;
+  print("HEEEEEIIYOOOOOOOOO $directionDetails2.durationValu");
 
   Placemark placeMark = newPlace.first;
 
@@ -580,31 +580,46 @@ Future<Position> _determinePosition() async {
 
 // COMMENTLER
 
-void obtainPlaceDirectionDetails(LatLng initPos, LatLng finalPos) async {
+Future<DirectionDetails> obtainPlaceDirectionDetails(
+    LatLng initPos, LatLng finalPos) async {
   var mapKey = "AAIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
   String directionURL =
-      "https://maps.googleapis.com/maps/api/directions/json?origin=${initPos.latitude},${initPos.longitude}&destination=${finalPos.latitude},${finalPos.longitude}&key=$mapKey";
+      "https://maps.googleapis.com/maps/api/directions/json?origin=38.396901,27.070646&destination=38.467249,27.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
   var res = await http.get(Uri.parse(directionURL));
-  var responseData = convert.jsonDecode(res.body);
+  var responseData = jsonDecode(res.body);
 
-  // DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
+  DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
 
-  int distance = 1;
-  String duration = '';
+  directionDetails.encodedPoints =
+      responseData["routes"][0]['overview_polyline']['points'];
+  directionDetails.distanceText =
+      responseData["routes"][0]['legs'][0]['distance']["text"];
+  directionDetails.distanceValue =
+      responseData["routes"][0]['legs'][0]['distance']["value"];
 
-  distance = responseData["routes"]["legs"]["distance"]["value"];
-
-  // duration = leg['duration']['text'];
-
-  print(
-      "xx11111111111111111111111111111111111111111111111111111111111111111111111111111111111DISTANCExx -----> $distance");
-// https://maps.googleapis.com/maps/api/directions/json?origin=38.396901,%2027.070646&destination=38.467249,%2027.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU
-  // var response = await Dio().get(directionURL);
-  // response = response;
-  // print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA $response");
-
-  // return distance;
+  directionDetails.durationText =
+      responseData["routes"][0]['legs'][0]['duration']["text"];
+  directionDetails.durationValue =
+      responseData["routes"][0]['legs'][0]['duration']["value"];
+  var a = directionDetails.durationText;
+  print("HEEEEEIIYOOOOOOOOO $a");
+  return directionDetails;
 }
+
+// Don't call the API every time the location changes, instead call it once using the current location. And the response contains everything you need to navigate the user. Check the maneuver key inside each step of a leg
+
+/*
+  print("XXX res.body= :");
+  print(res.body);
+  print("2");
+  print(responseData);
+  print("3");
+  print(responseData["routes"]);
+  print("4");
+ */
+
+// print(responseData["routes"][0]['legs'][0]['duration']);
+// print("5");
 
 /*
   Dio dio = Dio();
