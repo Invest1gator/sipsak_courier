@@ -1,13 +1,28 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:courier_app/models/directionDetails.dart';
 import 'package:flutter/material.dart';
+//import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocode/geocode.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
 import '../constant.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
+import 'FastDeliveryAlgrorithm.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
+import 'package:http/http.dart' as http;
+//import 'package:dio/dio.dart';
+
+// https://maps.googleapis.com/maps/api/directions/json?origin=38.396901,%2027.070646&destination=38.467249,%2027.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU
 
 late LatLng currentLatLng;
+String googleAPiKey = "AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+LatLng endLocation = const LatLng(38.467249, 27.208174);
+LatLng startLocation = const LatLng(0, 0);
 
 class MapPage extends StatefulWidget {
   @override
@@ -15,35 +30,95 @@ class MapPage extends StatefulWidget {
 }
 
 class HomePageState extends State<MapPage> {
-  Completer<GoogleMapController> _controller = Completer();
+  final Completer<GoogleMapController> _controller = Completer();
   late GoogleMapController mapController;
+  Map<PolylineId, Polyline> polylines = {}; //polylines to show direction
+  Set<Marker> _markers = Set<Marker>();
+  //PolylinePoints polylinePoints = PolylinePoints();
 
   @override
   void initState() {
+    initStartLoc();
+
+    _markers.add(Marker(
+      //add start location marker
+      markerId: MarkerId(startLocation.toString()),
+      position: startLocation, //position of marker
+      infoWindow: const InfoWindow(
+        //popup info
+        title: 'Starting Point ',
+        snippet: 'Start Marker',
+      ),
+      icon: BitmapDescriptor.defaultMarker, //Icon for Marker
+    ));
+
+    _markers.add(Marker(
+      //add distination location marker
+      markerId: MarkerId(endLocation.toString()),
+      position: endLocation, //position of marker
+      infoWindow: const InfoWindow(
+        //popup info
+        title: 'Destination Point ',
+        snippet: 'Destination Marker',
+      ),
+      icon: BitmapDescriptor.defaultMarker, //Icon for Marker
+    ));
     super.initState();
+
+    getDirections(); //fetch direction polylines from Google API
   }
 
-  /*
-  void goToCurrentLoc() {
-    Geolocator.getCurrentPosition().then((currLocation) {
-      setState(() {
-        currentLatLng =
-            new LatLng(currLocation.latitude, currLocation.longitude);
+  Future<void> initStartLoc() async {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+    LatLng startLocation = LatLng(position.latitude, position.longitude);
+  }
+
+  getDirections() async {
+    List<LatLng> polylineCoordinates = [];
+
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+    LatLng startLocation = LatLng(position.latitude, position.longitude);
+    print(" START LOCATION  ----------------->  $startLocation");
+    print(" END LOCATION  ----------------->  $endLocation");
+    /*PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+      googleAPiKey,
+      PointLatLng(startLocation.latitude, startLocation.longitude),
+      PointLatLng(endLocation.latitude, endLocation.longitude),
+      travelMode: TravelMode.driving,
+    );
+
+    if (result.points.isNotEmpty) {
+      result.points.forEach((PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
       });
-    });
-
-    print("currentLatLng : $currentLatLng.longitude  $currentLatLng.latitude ");
-    _gotoLocation(currentLatLng.latitude, currentLatLng.longitude);
+    } else {
+      print("POLYLINE LAR BOS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      print(result.errorMessage);
+    }
+    print("my points");
+    print(result.points);
+    addPolyLine(polylineCoordinates);*/
   }
-*/
+
+  addPolyLine(List<LatLng> polylineCoordinates) {
+    PolylineId id = PolylineId("poly");
+    Polyline polyline = Polyline(
+      polylineId: id,
+      color: Colors.deepPurpleAccent,
+      points: polylineCoordinates,
+      width: 8,
+    );
+    polylines[id] = polyline;
+    setState(() {});
+  }
 
   double zoomVal = 5.0;
   bool showPopUp = false;
   IconData dropdownvalue = Icons.home;
   String address = "";
   String buildingNo = "";
-  TextEditingController _buildingNoController = new TextEditingController();
-  TextEditingController _addressController = new TextEditingController();
 
   var iconList = [
     Icons.home,
@@ -57,7 +132,6 @@ class HomePageState extends State<MapPage> {
       floatingActionButton: Stack(
         children: [
           Visibility(
-            visible: !showPopUp,
             child: Positioned(
               left: 25,
               bottom: 10,
@@ -65,38 +139,20 @@ class HomePageState extends State<MapPage> {
                 highlightElevation: 50,
                 elevation: 12,
                 backgroundColor: Colors.blue.withOpacity(0.8),
-                child: Icon(
+                child: const Icon(
                   Icons.gps_fixed,
                   color: Colors.white,
                 ),
                 onPressed: () async {
                   /*;*/
                   Position position = await _determinePosition();
-
-                  List<Placemark> newPlace = await placemarkFromCoordinates(
-                      position.latitude, position.longitude);
-
-                  Placemark placeMark = newPlace.first;
-                  String? subAdministrativeArea =
-                      placeMark.subAdministrativeArea;
-                  String? name3 = placeMark.thoroughfare;
-                  String? subLocality = placeMark.subLocality;
-                  String? locality = placeMark.locality;
-                  String? administrativeArea = placeMark.administrativeArea;
-                  String? postalCode = placeMark.postalCode;
-
-                  buildingNo = placeMark.name!;
-
-                  address =
-                      "${administrativeArea} ${postalCode}, ${subAdministrativeArea}, ${name3}";
-
+                  print("QQQQQQQQQQQQQQQQQQQ");
                   _gotoLocation(
                     LatLng(position.latitude, position.longitude).latitude,
                     LatLng(position.latitude, position.longitude).longitude,
                   );
-                  setState(() {
-                    showPopUp = true;
-                  });
+
+                  // generateList();
                 },
               ),
             ),
@@ -108,328 +164,183 @@ class HomePageState extends State<MapPage> {
           _buildGoogleMap(
             context,
           ),
-          //_zoomminusfunction(),
-          //_zoomplusfunction(),
-          //_buildContainer(),
-          Visibility(
-            visible: showPopUp,
-            child: _popUp(),
+        ],
+      ),
+    );
+  }
+
+////////////////////////////////////////////////////////////////////////////////
+  Widget _buildGoogleMap(BuildContext context) {
+    // Builds google map with initial manuel target.
+    // Updates the target "_gotoLocation" function
+
+    return SizedBox(
+      height: !showPopUp
+          ? MediaQuery.of(context).size.height
+          : MediaQuery.of(context).size.height * 0.42,
+      width: MediaQuery.of(context).size.width,
+      child: Stack(
+        children: <Widget>[
+          GoogleMap(
+            myLocationEnabled: true,
+            compassEnabled: true,
+            myLocationButtonEnabled: false,
+            tiltGesturesEnabled: false,
+            markers: _markers,
+            polylines: Set<Polyline>.of(polylines.values),
+            mapType: MapType.normal,
+            initialCameraPosition: const CameraPosition(
+                target: LatLng(38.454659, 27.202257), zoom: 16),
+            onMapCreated: (GoogleMapController controller) {
+              _controller.complete(controller);
+            },
+
+            //markers: {kartalMarker, donerciomerustaMarker, donercivedatMarker},
+          ),
+          //from 0-1, 0.5 = 50% opacity
+          Container(
+            margin: const EdgeInsets.fromLTRB(100, 0, 100, 0),
+            child: const Opacity(
+              opacity: 0.8,
+              child: SizedBox(
+                width: 100.0,
+                height: 50.0,
+                child: Card(
+                  child: Text(
+                    '15 dk \n 5 km',
+                    style: TextStyle(
+                        color: Colors.cyanAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _popUp() {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-          height: MediaQuery.of(context).size.height * 0.48,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                blurRadius: 3,
-                spreadRadius: 2,
-                color: Colors.grey.withOpacity(0.5),
-              ),
-            ],
-          ),
-          width: double.infinity,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Center(
-                        child: Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.rectangle,
-                            border: Border.all(
-                              color: Colors.grey,
-                            ),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: Center(
-                            child: DropdownButton(
-                              // Initial Value
-                              value: dropdownvalue,
-                              underline: Container(),
-
-                              // Down Arrow Icon
-                              icon: const Icon(
-                                Icons.keyboard_arrow_down,
-                                color: kOrderPageButtonColor,
-                              ),
-
-                              // Array list of items
-                              items: iconList.map((IconData items) {
-                                return DropdownMenuItem(
-                                  alignment: Alignment.center,
-                                  value: items,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Center(
-                                        child: Icon(
-                                          items,
-                                          size: 32,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
-                              // After selecting the desired option,it will
-                              // change button value to selected value
-                              onChanged: (IconData? newValue) {
-                                setState(() {
-                                  dropdownvalue = newValue!;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: SizedBox(),
-                    ),
-                    Expanded(
-                        flex: 8,
-                        child: TextField(
-                          cursorColor: Colors.yellow[600],
-                          decoration: InputDecoration(
-                            isDense: true,
-                            fillColor: kOrderPageButtonColor,
-                            border: OutlineInputBorder(),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(
-                                color: kOrderPageButtonColor,
-                                width: 2.0,
-                              ),
-                            ),
-                            labelText: 'Başlık(Ev, İşyeri)',
-                            labelStyle: TextStyle(color: kOrderPageTextColor),
-                          ),
-                        )),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: TextField(
-                        cursorColor: Colors.yellow[600],
-                        controller: _addressController..text = address,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(
-                              color: kOrderPageButtonColor,
-                              width: 2.0,
-                            ),
-                          ),
-                          labelText: 'Adres',
-                          labelStyle: TextStyle(color: kOrderPageTextColor),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: TextField(
-                        cursorColor: Colors.yellow[600],
-                        controller: _buildingNoController..text = buildingNo,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(
-                              color: kOrderPageButtonColor,
-                              width: 2.0,
-                            ),
-                          ),
-                          labelText: 'Bina',
-                          labelStyle: TextStyle(color: kOrderPageTextColor),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: SizedBox(),
-                    ),
-                    Expanded(
-                      flex: 4,
-                      child: TextField(
-                        cursorColor: Colors.yellow[600],
-                        decoration: InputDecoration(
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(
-                              color: kOrderPageButtonColor,
-                              width: 2.0,
-                            ),
-                          ),
-                          labelText: 'Kat',
-                          labelStyle: TextStyle(color: kOrderPageTextColor),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      flex: 1,
-                      child: SizedBox(),
-                    ),
-                    Expanded(
-                        flex: 4,
-                        child: TextField(
-                          cursorColor: Colors.yellow[600],
-                          decoration: InputDecoration(
-                            isDense: true,
-                            border: OutlineInputBorder(),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(
-                                color: kOrderPageButtonColor,
-                                width: 2.0,
-                              ),
-                            ),
-                            labelText: 'Daire',
-                            labelStyle: TextStyle(color: kOrderPageTextColor),
-                          ),
-                        )),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                        flex: 1,
-                        child: TextField(
-                          cursorColor: Colors.yellow[600],
-                          decoration: InputDecoration(
-                            isDense: true,
-                            border: OutlineInputBorder(),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(
-                                color: kOrderPageButtonColor,
-                                width: 2.0,
-                              ),
-                            ),
-                            labelText: 'Adres Tarifi',
-                            labelStyle: TextStyle(color: kOrderPageTextColor),
-                          ),
-                        )),
-                  ],
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: GestureDetector(
-                        onTap: (() {
-                          //Save Address Data
-                          print("Save Address Data");
-                        }),
-                        child: Container(
-                          height: 50,
-                          width: double.infinity,
-                          child: Center(
-                            child: const Text(
-                              "Kaydet",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          decoration: BoxDecoration(
-                            color: kOrderPageButtonColor,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-                SizedBox(),
-              ],
-            ),
-          )),
-    );
-  }
-
-  Widget _zoomminusfunction() {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: IconButton(
-          icon: Icon(FontAwesomeIcons.magnifyingGlassMinus,
-              color: kOrderPageButtonColor),
-          onPressed: () {
-            zoomVal--;
-            _minus(zoomVal);
-          }),
-    );
-  }
-
-  Widget _zoomplusfunction() {
-    return Align(
-      alignment: Alignment.topRight,
-      child: IconButton(
-          icon: Icon(FontAwesomeIcons.magnifyingGlassPlus,
-              color: kOrderPageButtonColor),
-          onPressed: () {
-            zoomVal++;
-            _plus(zoomVal);
-          }),
-    );
-  }
-
-  Future<void> _minus(double zoomVal) async {
+  Future<void> _gotoLocation(double lat, double long) async {
     final GoogleMapController controller = await _controller.future;
-    //final _locationData = await location.getLocation();
-
-    Position position = await Geolocator.getCurrentPosition();
-
-    //  var lat = LatLng(_locationData.latitude);
-
+    print("XXXXXXXXXXXX  LOC : $lat  $long ");
     controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        //  target: LatLng(_locationData.latitude, _locationData.longitude),
-        target: LatLng(LatLng(position.latitude, position.longitude).latitude,
-            LatLng(position.latitude, position.longitude).longitude),
-        zoom: zoomVal)));
-  }
-
-  Future<void> _plus(double zoomVal) async {
-    Position position = await Geolocator.getCurrentPosition();
-
-    final GoogleMapController controller = await _controller.future;
-    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-      target: LatLng(LatLng(position.latitude, position.longitude).latitude,
-          LatLng(position.latitude, position.longitude).longitude),
+      target: LatLng(lat, long),
+      zoom: 18,
     )));
   }
+}
 
+Future<Position> _determinePosition() async {
+  bool serviceEnabled;
+  LocationPermission permission;
+  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+  if (!serviceEnabled) {
+    return Future.error('Location services are disabled');
+  }
+  permission = await Geolocator.checkPermission();
+  if (permission == LocationPermission.denied) {
+    permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.denied) {
+      return Future.error("Location permission denied");
+    }
+  }
+  if (permission == LocationPermission.deniedForever) {
+    return Future.error('Location permissions are permanently denied');
+  }
+
+  Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.best);
+
+  print(position);
+
+  obtainPlaceDirectionDetails(startLocation, endLocation);
+
+  return position;
+}
+
+// COMMENTLER
+
+Future<DirectionDetails> obtainPlaceDirectionDetails(
+    LatLng initPos, LatLng finalPos) async {
+  var mapKey = "AAIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+  Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.best);
+  LatLng startLocation = LatLng(position.latitude, position.longitude);
+  print("iste bu : ${startLocation.latitude}");
+  String directionURL =
+      "https://maps.googleapis.com/maps/api/directions/json?origin=${startLocation.latitude},${startLocation.longitude}&destination=38.467249,27.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+  var res = await http.get(Uri.parse(directionURL));
+  var responseData = jsonDecode(res.body);
+
+  DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
+
+  directionDetails.encodedPoints =
+      responseData["routes"][0]['overview_polyline']['points'];
+  directionDetails.distanceText =
+      responseData["routes"][0]['legs'][0]['distance']["text"];
+  directionDetails.distanceValue =
+      responseData["routes"][0]['legs'][0]['distance']["value"];
+  directionDetails.durationText =
+      responseData["routes"][0]['legs'][0]['duration']["text"];
+  directionDetails.durationValue =
+      responseData["routes"][0]['legs'][0]['duration']["value"];
+  var a = directionDetails.durationText;
+  print("HEEEEEIIYOOOOOOOOO $a");
+  return directionDetails;
+}
+
+// Don't call the API every time the location changes, instead call it once using the current location. And the response contains everything you need to navigate the user. Check the maneuver key inside each step of a leg
+
+/*
+  print("XXX res.body= :");
+  print(res.body);
+  print("2");
+  print(responseData);
+  print("3");
+  print(responseData["routes"]);
+  print("4");
+ */
+
+// print(responseData["routes"][0]['legs'][0]['duration']);
+// print("5");
+
+/*
+  Dio dio = Dio();
+  Response response = await dio.get(
+      "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins=40.6655101,-73.89188969999998&destinations=40.6905615%2C,-73.9976592&key=AIzaSyDi48IpaybbVdmJ9rTgSVfnTiOxxv8GAPo");
+  print("XXXXXXXXXXXXXXXXXXXXXXX::::");
+  print(response.data);
+  print("XXXXXXXXXXXXXXXXXXXXXXX::::");
+  */
+
+/*
+  void goToCurrentLoc() {
+    Geolocator.getCurrentPosition().then((currLocation) {
+      setState(() {
+        currentLatLng =
+            new LatLng(currLocation.latitude, currLocation.longitude);
+      });
+    });
+
+    print("currentLatLng : $currentLatLng.longitude  $currentLatLng.latitude ");
+    _gotoLocation(currentLatLng.latitude, currentLatLng.longitude);
+  }
+*/
+
+/*
   Widget _buildContainer() {
     return Align(
       alignment: Alignment.bottomLeft,
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 20.0),
+        margin: const EdgeInsets.symmetric(vertical: 20.0),
         height: 150.0,
         child: ListView(
           scrollDirection: Axis.horizontal,
           children: <Widget>[
-            SizedBox(width: 5.0),
+            const SizedBox(width: 5.0),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: _boxes(
@@ -438,7 +349,7 @@ class HomePageState extends State<MapPage> {
                   27.190210,
                   "Kartal Büfe"),
             ),
-            SizedBox(width: 5.0),
+            const SizedBox(width: 5.0),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: _boxes(
@@ -447,7 +358,7 @@ class HomePageState extends State<MapPage> {
                   27.203072,
                   "Dönerci Ömer Usta"),
             ),
-            SizedBox(width: 5.0),
+            const SizedBox(width: 5.0),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: _boxes(
@@ -467,36 +378,34 @@ class HomePageState extends State<MapPage> {
       onTap: () {
         _gotoLocation(lat, long);
       },
-      child: Container(
-        child: new FittedBox(
-          child: Material(
-              color: Colors.white,
-              elevation: 14.0,
-              borderRadius: BorderRadius.circular(24.0),
-              shadowColor: Color(0x802196F3),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  Container(
-                    width: 180,
-                    height: 200,
-                    child: ClipRRect(
-                      borderRadius: new BorderRadius.circular(24.0),
-                      child: Image(
-                        fit: BoxFit.fill,
-                        image: NetworkImage(_image),
-                      ),
+      child: FittedBox(
+        child: Material(
+            color: Colors.white,
+            elevation: 14.0,
+            borderRadius: BorderRadius.circular(24.0),
+            shadowColor: Color(0x802196F3),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Container(
+                  width: 180,
+                  height: 200,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24.0),
+                    child: Image(
+                      fit: BoxFit.fill,
+                      image: NetworkImage(_image),
                     ),
                   ),
-                  Container(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: myDetailsContainer1(restaurantName),
-                    ),
+                ),
+                Container(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: myDetailsContainer1(restaurantName),
                   ),
-                ],
-              )),
-        ),
+                ),
+              ],
+            )),
       ),
     );
   }
@@ -595,52 +504,7 @@ class HomePageState extends State<MapPage> {
       ],
     );
   }
-
-////////////////////////////////////////////////////////////////////////////////
-  Widget _buildGoogleMap(BuildContext context) {
-    // Builds google map with initial manuel target.
-    // Updates the target "_gotoLocation" function
-
-    /*
-    Future<Position> myLatLng() async {
-      Position position = await _determinePosition();
-      return position;
-    }
-    */
-    Set<Marker> _markers = Set<Marker>();
-
-    return Container(
-      height: !showPopUp
-          ? MediaQuery.of(context).size.height
-          : MediaQuery.of(context).size.height * 0.42,
-      width: MediaQuery.of(context).size.width,
-      child: GoogleMap(
-        myLocationEnabled: true,
-        compassEnabled: true,
-        myLocationButtonEnabled: false,
-        tiltGesturesEnabled: false,
-        markers: _markers,
-
-        mapType: MapType.normal,
-        initialCameraPosition:
-            CameraPosition(target: LatLng(38.457844, 27.206515), zoom: 14),
-        onMapCreated: (GoogleMapController controller) {
-          _controller.complete(controller);
-        },
-
-        //markers: {kartalMarker, donerciomerustaMarker, donercivedatMarker},
-      ),
-    );
-  }
-
-  Marker myloc = Marker(
-    markerId: MarkerId('kartalbufe'),
-    position: LatLng(38.432559, 27.190210),
-    infoWindow: InfoWindow(title: 'Kartal Büfe'),
-    icon: BitmapDescriptor.defaultMarkerWithHue(
-      BitmapDescriptor.hueOrange,
-    ),
-  );
+*/
 
 /*
   Marker kartalMarker = Marker(
@@ -669,69 +533,6 @@ class HomePageState extends State<MapPage> {
     ),
   );
 */
-
-  Future<void> _gotoLocation(double lat, double long) async {
-    final GoogleMapController controller = await _controller.future;
-    print("XXXXXXXXXXXX  LOC : $lat  $long ");
-    controller.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-      target: LatLng(lat, long),
-      zoom: 18,
-    )));
-  }
-}
-
-class Pos {
-  String? title;
-  String? address;
-  String? buildingNo;
-}
-
-Future<Position> _determinePosition() async {
-  bool serviceEnabled;
-  LocationPermission permission;
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-  if (!serviceEnabled) {
-    return Future.error('Location services are disabled');
-  }
-  permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      return Future.error("Location permission denied");
-    }
-  }
-  if (permission == LocationPermission.deniedForever) {
-    return Future.error('Location permissions are permanently denied');
-  }
-
-  Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.best);
-
-  // String _address = ""; // create this variable
-
-  List<Placemark> newPlace =
-      await placemarkFromCoordinates(position.latitude, position.longitude);
-
-  Placemark placeMark = newPlace.first;
-
-  String? name = placeMark.name;
-  String? name2 = placeMark.subAdministrativeArea;
-  String? name3 = placeMark.thoroughfare;
-  String? subLocality = placeMark.subLocality;
-  String? locality = placeMark.locality;
-  String? administrativeArea = placeMark.administrativeArea;
-  String? postalCode = placeMark.postalCode;
-  String? country = placeMark.country;
-  String address =
-      "${name}, ${name2}, ${name3}, ${subLocality}, ${locality}, ${administrativeArea} ${postalCode}, ${country}";
-
-  print(address);
-
-  print(position);
-
-  return position;
-}
 
 /*
   void getLocationOnChanged() async {

@@ -10,8 +10,7 @@ class FCMNotificaiton {
   }) async {
     const postUrl = 'https://fcm.googleapis.com/fcm/send';
     final data = {
-      "to":
-          "c46_qIMHQRubXj4_jKPPuG:APA91bEyTTvaNYhFjMCC4mT3AwZe91rqvAm5ujgiWSp6sdwRe-PBiPk4Wff93kgxdkVf3IkNJ8QOQ-0o6U-lu3_81PYTj04yqvF88VehOnHZKIGjLgs0qxsQdft0gmVkZ_NcmiQs5RnL",
+      "to": device_token,
       "notification": {
         "title": title,
         "body": body,
@@ -26,7 +25,8 @@ class FCMNotificaiton {
     final headers = {
       'content-type': 'application/json',
       'Authorization':
-          'key=AAAA83fQ5ws:APA91bFTKvfHiHcfPYe-MNnO5bjLJFgptWOL88NiTJ7VdjDdsC868mLNWVqI4Txvbqj6ylOd6Bxa_yI9NR8FqI-QM8kPYYfEI-v0vk7L7tKvFExQsTc9DgpKSPYrq-vz8x--LfdS3Gmk' // 'key=YOUR_SERVER_KEY'
+          'key=AAAA83fQ5ws:APA91bFTKvfHiHcfPYe-MNnO5bjLJFgptWOL88NiTJ7VdjDdsC868mLNWVqI4Txvbqj6ylOd6Bxa_yI9NR8FqI-QM8kPYYfEI-v0vk7L7tKvFExQsTc9DgpKSPYrq-vz8x--LfdS3Gmk'
+      // 'key=YOUR_SERVER_KEY'
     };
 
     final response = await http.post(Uri.parse(postUrl),

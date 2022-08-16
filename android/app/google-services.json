@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "1045687232267",
+    "firebase_url": "https://sipsak-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "sipsak",
+    "storage_bucket": "sipsak.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1045687232267:android:20c8e4329908feffd7e40e",
+        "android_client_info": {
+          "package_name": "com.example.courier_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1045687232267-73mj48up5pgfc9ftdtqcrkc99rhj3o43.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuAHJSYvnTYY2J_nklMozoD7PiZpTV4iA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1045687232267-73mj48up5pgfc9ftdtqcrkc99rhj3o43.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1045687232267:android:25694fb7b35f025ad7e40e",
+        "android_client_info": {
+          "package_name": "com.example.sipsak"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1045687232267-73mj48up5pgfc9ftdtqcrkc99rhj3o43.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuAHJSYvnTYY2J_nklMozoD7PiZpTV4iA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1045687232267-73mj48up5pgfc9ftdtqcrkc99rhj3o43.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
