@@ -1,8 +1,11 @@
 import 'package:courier_app/Screens/Login/login_screen.dart';
-import 'package:courier_app/Screens/courier_page.dart';
+import 'package:courier_app/Screens/CourierPage/courier_page.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 

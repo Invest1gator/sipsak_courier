@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:courier_app/models/directionDetails.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+//import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocode/geocode.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -13,7 +14,13 @@ import '../constant.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 
-// Location location = new Location();
+import 'FastDeliveryAlgrorithm.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert' as convert;
+import 'package:http/http.dart' as http;
+//import 'package:dio/dio.dart';
+
+//Location location = new Location();
 
 // https://maps.googleapis.com/maps/api/directions/json?origin=38.396901,27.070646&destination=38.467249,%2027.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU
 
@@ -38,6 +45,8 @@ class HomePageState extends State<MapPage> {
   Set<Marker> _markers = Set<Marker>();
 
   PolylinePoints polylinePoints = PolylinePoints();
+
+  //PolylinePoints polylinePoints = PolylinePoints();
 
   @override
   void initState() {
@@ -84,7 +93,7 @@ class HomePageState extends State<MapPage> {
     LatLng startLocation = LatLng(position.latitude, position.longitude);
     print(" START LOCATION  ----------------->  $startLocation");
     print(" END LOCATION  ----------------->  $endLocation");
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+    /*PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
       googleAPiKey,
       PointLatLng(startLocation.latitude, startLocation.longitude),
       PointLatLng(endLocation.latitude, endLocation.longitude),
@@ -101,7 +110,7 @@ class HomePageState extends State<MapPage> {
     }
     print("------------> My polyline points");
     print(result.points);
-    addPolyLine(polylineCoordinates);
+    addPolyLine(polylineCoordinates);*/
   }
 
   addPolyLine(List<LatLng> polylineCoordinates) {
