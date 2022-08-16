@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:courier_app/models/directionDetails.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -11,18 +12,18 @@ import 'package:provider/provider.dart';
 import '../constant.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
-import 'FastDeliveryAlgrorithm.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert' as convert;
-import 'package:http/http.dart' as http;
-import 'package:dio/dio.dart';
 
-// https://maps.googleapis.com/maps/api/directions/json?origin=38.396901,%2027.070646&destination=38.467249,%2027.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU
+// Location location = new Location();
+
+// https://maps.googleapis.com/maps/api/directions/json?origin=38.396901,27.070646&destination=38.467249,%2027.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU
 
 late LatLng currentLatLng;
 String googleAPiKey = "AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
 LatLng endLocation = const LatLng(38.467249, 27.208174);
 LatLng startLocation = const LatLng(0, 0);
+DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
+String? a = " ";
+String? b = " ";
 
 class MapPage extends StatefulWidget {
   @override
@@ -30,10 +31,12 @@ class MapPage extends StatefulWidget {
 }
 
 class HomePageState extends State<MapPage> {
+  // final Location location = Location();
   final Completer<GoogleMapController> _controller = Completer();
   late GoogleMapController mapController;
   Map<PolylineId, Polyline> polylines = {}; //polylines to show direction
   Set<Marker> _markers = Set<Marker>();
+
   PolylinePoints polylinePoints = PolylinePoints();
 
   @override
@@ -71,7 +74,6 @@ class HomePageState extends State<MapPage> {
   Future<void> initStartLoc() async {
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best);
-    LatLng startLocation = LatLng(position.latitude, position.longitude);
   }
 
   getDirections() async {
@@ -97,7 +99,7 @@ class HomePageState extends State<MapPage> {
       print("POLYLINE LAR BOS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
       print(result.errorMessage);
     }
-    print("my points");
+    print("------------> My polyline points");
     print(result.points);
     addPolyLine(polylineCoordinates);
   }
@@ -106,7 +108,7 @@ class HomePageState extends State<MapPage> {
     PolylineId id = PolylineId("poly");
     Polyline polyline = Polyline(
       polylineId: id,
-      color: Colors.deepPurpleAccent,
+      color: Color.fromARGB(160, 0, 144, 138),
       points: polylineCoordinates,
       width: 8,
     );
@@ -144,14 +146,22 @@ class HomePageState extends State<MapPage> {
                   color: Colors.white,
                 ),
                 onPressed: () async {
+                  Position positio = await Geolocator.getCurrentPosition(
+                      desiredAccuracy: LocationAccuracy.best);
+                  LatLng pos = LatLng(positio.latitude, positio.longitude);
+                  _setCircle(pos);
+
                   /*;*/
                   Position position = await _determinePosition();
-                  print("QQQQQQQQQQQQQQQQQQQ");
                   _gotoLocation(
                     LatLng(position.latitude, position.longitude).latitude,
                     LatLng(position.latitude, position.longitude).longitude,
                   );
 
+                  setState(() {
+                    a = directionDetails.distanceText;
+                    b = directionDetails.durationText;
+                  });
                   // generateList();
                 },
               ),
@@ -173,6 +183,8 @@ class HomePageState extends State<MapPage> {
   Widget _buildGoogleMap(BuildContext context) {
     // Builds google map with initial manuel target.
     // Updates the target "_gotoLocation" function
+    var height = MediaQuery.of(context).size.height;
+    var width = MediaQuery.of(context).size.width;
 
     return SizedBox(
       height: !showPopUp
@@ -199,17 +211,17 @@ class HomePageState extends State<MapPage> {
           ),
           //from 0-1, 0.5 = 50% opacity
           Container(
-            margin: const EdgeInsets.fromLTRB(100, 0, 100, 0),
-            child: const Opacity(
-              opacity: 0.8,
+            margin: EdgeInsets.fromLTRB(width * 0.33, 0, width * 0.25, 0),
+            child: Opacity(
+              opacity: 0.5,
               child: SizedBox(
-                width: 100.0,
+                width: 350.0,
                 height: 50.0,
                 child: Card(
                   child: Text(
-                    '15 dk \n 5 km',
-                    style: TextStyle(
-                        color: Colors.cyanAccent,
+                    'Süre: $a \nMesafe: $b',
+                    style: const TextStyle(
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                         fontSize: 18),
                   ),
@@ -222,6 +234,22 @@ class HomePageState extends State<MapPage> {
     );
   }
 
+/*
+  Future<String> _getRestaurantLocation() async {
+    try {
+      await FirebaseFirestore.instance
+          .collection(user.uid + '.CurrentMarketBasket')
+          .doc(basketItem.name)
+          .(basketItem.toJson());
+    } catch (e) {
+      await FirebaseFirestore.instance
+          .collection(user.uid + '.CurrentMarketBasket')
+          .doc(basketItem.name)
+          .update(basketItem.toJson());
+    }
+  }
+*/
+
   Future<void> _gotoLocation(double lat, double long) async {
     final GoogleMapController controller = await _controller.future;
     print("XXXXXXXXXXXX  LOC : $lat  $long ");
@@ -230,70 +258,101 @@ class HomePageState extends State<MapPage> {
       zoom: 18,
     )));
   }
-}
 
-Future<Position> _determinePosition() async {
-  bool serviceEnabled;
-  LocationPermission permission;
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  final Set<Circle> _circles = Set<Circle>();
+  var radiusValue = 3000.0;
 
-  if (!serviceEnabled) {
-    return Future.error('Location services are disabled');
+  // point i verip circle ı oluşturabiliriz
+  Future<void> _setCircle(LatLng point) async {
+    Completer<GoogleMapController> _controller = Completer();
+    final GoogleMapController controller = await _controller.future;
+
+    controller.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(target: point, zoom: 12)));
+    setState(() {
+      _circles.add(Circle(
+          circleId: CircleId('raj'),
+          center: point,
+          fillColor: Colors.blue.withOpacity(0.1),
+          radius: radiusValue,
+          strokeColor: Colors.blue,
+          strokeWidth: 1));
+      //getDirections = false;
+      //searchToggle = false;
+      //radiusSlider = true;
+    });
+    print("------------------------> CIRCLE SET.");
   }
-  permission = await Geolocator.checkPermission();
-  if (permission == LocationPermission.denied) {
-    permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      return Future.error("Location permission denied");
+
+  Future<Position> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled');
     }
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error("Location permission denied");
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are permanently denied');
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+
+    print(position);
+    LatLng pos = LatLng(position.latitude, position.longitude);
+    // _setCircle(pos);
+    obtainPlaceDirectionDetails(startLocation, endLocation);
+
+    return position;
   }
-  if (permission == LocationPermission.deniedForever) {
-    return Future.error('Location permissions are permanently denied');
-  }
-
-  Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.best);
-
-  print(position);
-
-  obtainPlaceDirectionDetails(startLocation, endLocation);
-
-  return position;
-}
 
 // COMMENTLER
 
-Future<DirectionDetails> obtainPlaceDirectionDetails(
-    LatLng initPos, LatLng finalPos) async {
-  var mapKey = "AAIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
-  Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.best);
-  LatLng startLocation = LatLng(position.latitude, position.longitude);
-  print("iste bu : ${startLocation.latitude}");
-  String directionURL =
-      "https://maps.googleapis.com/maps/api/directions/json?origin=${startLocation.latitude},${startLocation.longitude}&destination=38.467249,27.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
-  var res = await http.get(Uri.parse(directionURL));
-  var responseData = jsonDecode(res.body);
+  Future<DirectionDetails> obtainPlaceDirectionDetails(
+      LatLng initPos, LatLng finalPos) async {
+    var mapKey = "AAIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+    LatLng startLocation = LatLng(position.latitude, position.longitude);
+    print("iste bu : ${startLocation.latitude}");
+    String directionURL =
+        "https://maps.googleapis.com/maps/api/directions/json?origin=${startLocation.latitude},${startLocation.longitude}&destination=38.467249,27.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+    var res = await http.get(Uri.parse(directionURL));
+    var responseData = jsonDecode(res.body);
 
-  DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
+    directionDetails.encodedPoints =
+        responseData["routes"][0]['overview_polyline']['points'];
+    directionDetails.distanceText =
+        responseData["routes"][0]['legs'][0]['distance']["text"];
+    directionDetails.distanceValue =
+        responseData["routes"][0]['legs'][0]['distance']["value"];
+    directionDetails.durationText =
+        responseData["routes"][0]['legs'][0]['duration']["text"];
+    directionDetails.durationValue =
+        responseData["routes"][0]['legs'][0]['duration']["value"];
 
-  directionDetails.encodedPoints =
-      responseData["routes"][0]['overview_polyline']['points'];
-  directionDetails.distanceText =
-      responseData["routes"][0]['legs'][0]['distance']["text"];
-  directionDetails.distanceValue =
-      responseData["routes"][0]['legs'][0]['distance']["value"];
-  directionDetails.durationText =
-      responseData["routes"][0]['legs'][0]['duration']["text"];
-  directionDetails.durationValue =
-      responseData["routes"][0]['legs'][0]['duration']["value"];
-  var a = directionDetails.durationText;
-  print("HEEEEEIIYOOOOOOOOO $a");
-  return directionDetails;
+    a = directionDetails.durationText;
+    b = directionDetails.distanceText;
+    print("HEEEEEIIYOOOOOOOOO durationText :$a");
+    print("HEEEEEIIYOOOOOOOOO distanceText :$b");
+    return directionDetails;
+  }
 }
 
+// Polyline: It's a list of points, where line segments are drawn between consecutive points.
 // Don't call the API every time the location changes, instead call it once using the current location. And the response contains everything you need to navigate the user. Check the maneuver key inside each step of a leg
-
+// Off-route detection
+// fastest route default a göre hesaplanmıştır.
+//import 'package:geocoding/geocoding.dart';
+// List<Location> locations = await locationFromAddress("Gronausestraat 710, Enschede");
 /*
   print("XXX res.body= :");
   print(res.body);
