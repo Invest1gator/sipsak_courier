@@ -32,7 +32,7 @@ class _CourierPageState extends State<CourierPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance!.addPostFrameCallback((_) async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       service = LocalNotificationService();
       service.intialize();
 

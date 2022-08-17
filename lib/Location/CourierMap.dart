@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:google_maps_flutter_platform_interface/src/types/marker_updates.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
+import '../Screens/CourierPage/courier_page.dart';
 import 'FastDeliveryAlgrorithm.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as convert;
@@ -28,7 +29,7 @@ DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
 String? a = " ";
 String? b = " ";
 int courrierState = -1;
-// -1 idle, 0 to restaurant, 1 to customer
+// -1 idle, 0 to restaurant, 1 to customer, 2 waiting point
 
 class MapPage extends StatefulWidget {
   @override
@@ -45,7 +46,7 @@ class HomePageState extends State<MapPage> {
   @override
   void initState() {
     initStartLoc();
-    if (courrierState == 0 || courrierState == 1) {
+    if (courrierState == -1) {
       _markers.clear();
     }
     _markers.add(Marker(
@@ -73,12 +74,13 @@ class HomePageState extends State<MapPage> {
     ));
 
     super.initState();
-    Timer.periodic(const Duration(seconds: 5), (Timer t) => upDateMarkers());
+
     getDirections(); //fetch direction polylines from Google API
   }
 
   void setCustomerMarkerIcon() {
-    BitmapDescriptor.fromAssetImage(ImageConfiguration.empty, "assets/moto.png")
+    BitmapDescriptor.fromAssetImage(
+            const ImageConfiguration(size: Size(48, 48)), "assets/moto.png")
         .then(
       (icon) {
         currentLocationIcon = icon;
@@ -100,6 +102,8 @@ class HomePageState extends State<MapPage> {
     /// I called the MarkersUpdate class inside the setState function.
     /// You can do it your way but remember to call the setState function so that the updated markers reflect on your Flutter app.
     /// Ps: I did not try the second way where the MarkerUpdate is called outside the setState buttechnically it should work.
+    setCustomerMarkerIcon();
+
     setState(() {
       MarkerUpdates.from(
           Set<Marker>.from(_markers), Set<Marker>.from(updatedMarkers));
@@ -213,7 +217,7 @@ class HomePageState extends State<MapPage> {
                 ),
                 onPressed: () async {
                   /*;*/
-                  Position position = await _determinePosition();
+                  Position position = await _determinePosition(context);
                   _gotoLocation(
                     LatLng(position.latitude, position.longitude).latitude,
                     LatLng(position.latitude, position.longitude).longitude,
@@ -224,6 +228,9 @@ class HomePageState extends State<MapPage> {
 
                   Timer.periodic(
                       const Duration(seconds: 5), (Timer t) => getDirections());
+
+                  Timer.periodic(
+                      const Duration(seconds: 5), (Timer t) => upDateMarkers());
                   // generateList();
                 },
               ),
@@ -332,7 +339,7 @@ var radiusValue = 3000.0;
 }
 */
 
-Future<Position> _determinePosition() async {
+Future<Position> _determinePosition(BuildContext context) async {
   bool serviceEnabled;
   LocationPermission permission;
   serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -356,7 +363,7 @@ Future<Position> _determinePosition() async {
 
   print(position);
 
-  obtainPlaceDirectionDetails(startLocation, endLocation);
+  obtainPlaceDirectionDetails(context, startLocation, endLocation);
 
   return position;
 }
@@ -364,14 +371,41 @@ Future<Position> _determinePosition() async {
 // COMMENTLER
 
 Future<DirectionDetails> obtainPlaceDirectionDetails(
-    LatLng initPos, LatLng finalPos) async {
+    BuildContext context, LatLng initPos, LatLng finalPos) async {
   var mapKey = "AAIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
   Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.best);
   LatLng startLocation = LatLng(position.latitude, position.longitude);
   print("iste bu : ${startLocation.latitude}");
+
+  var customerAdress =
+      Provider.of<AddressesProvider>(context, listen: false).orderAddress;
+
+  var restaurantAdress =
+      Provider.of<AddressesProvider>(context, listen: false).restaurantAddress;
+  print(
+      "------> CUSTOMER_ADRESS = $customerAdress   ----  Restaurant_ADRES = $restaurantAdress");
+
+  LatLng destination = LatLng(0.0, 0.0);
+
+  List<Location> custAdress = await locationFromAddress(customerAdress);
+  List<Location> restAdress = await locationFromAddress(restaurantAdress);
+
+  LatLng customerLATLONG =
+      LatLng(custAdress.first.latitude, custAdress.first.longitude);
+  LatLng restaurantLATLONG =
+      LatLng(restAdress.first.latitude, restAdress.first.longitude);
+
+  // courrierState = courrierState + 1;
+
+  if (courrierState == 0) {
+    destination = restaurantLATLONG;
+  } else if (courrierState == 1) {
+    destination = customerLATLONG;
+  }
+  print(destination);
   String directionURL =
-      "https://maps.googleapis.com/maps/api/directions/json?origin=${startLocation.latitude},${startLocation.longitude}&destination=38.467249,27.208174&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+      "https://maps.googleapis.com/maps/api/directions/json?origin=${startLocation.latitude},${startLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
   var res = await http.get(Uri.parse(directionURL));
   var responseData = jsonDecode(res.body);
 
