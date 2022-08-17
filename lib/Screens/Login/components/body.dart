@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:courier_app/Screens/CourierPage/courier_page.dart';
 import 'package:courier_app/fcm_notification.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:lottie/lottie.dart';
@@ -72,6 +73,19 @@ class Body extends StatelessWidget {
                     title: 'Siparişiniz Gelmek Üzere!',
                     body: 'Kuryemiz çok yakında kapınızda olacak!',
                     device_token: device_token);
+
+                // Get Courier Token
+
+                String? token = await FirebaseMessaging.instance.getToken();
+
+                await FirebaseFirestore.instance
+                    .collection('CurrentCourier')
+                    .doc("CurrentCourierDoc")
+                    .set(
+                  {
+                    "device_token": token,
+                  },
+                );
 
                 Navigator.push(
                   context,

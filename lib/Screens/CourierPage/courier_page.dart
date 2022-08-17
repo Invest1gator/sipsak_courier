@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:page_transition/page_transition.dart';
+import 'package:provider/provider.dart';
 import '../../Location/CourierBuildMap.dart';
 import '../../constant.dart';
 
@@ -28,61 +29,29 @@ class CourierPage extends StatefulWidget {
 class _CourierPageState extends State<CourierPage> {
   late final LocalNotificationService service;
 
-  Future<void> addDeviceTokenToDetailedUser() async {
-    String? token = await FirebaseMessaging.instance.getToken();
-
-    await FirebaseFirestore.instance
-        .collection('CurrentCourier')
-        .doc("CurrentCourierDoc")
-        .set(
-      {
-        "device_token": token,
-      },
-    );
-  }
-
-  Future<void> getCurrentUserId() async {
-    CollectionReference _collectionRef =
-        FirebaseFirestore.instance.collection("CurrentUser");
-    // Get docs from collection reference
-    QuerySnapshot querySnapshot = await _collectionRef.get();
-    // Get data from docs and convert map to List
-    final data = querySnapshot.docs;
-
-    for (var i = 0; i < data.length; i++) {
-      userId = data[i]['user_id'];
-    }
-  }
-
   @override
   void initState() {
-    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) async {
-      service = LocalNotificationService();
-      await service.intialize();
-      await addDeviceTokenToDetailedUser();
-      await getCurrentUserId();
-    });
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      // Not firing
-      print("Sipariş Hazır!");
-      await service.showNotification(
-          id: 0,
-          title: 'Teslimat Hazır!',
-          body: 'Teslimat için hedef konuma gidiniz!');
-      print('Kuryeden Mesaj geldi!');
-    });
-
-    /*FirebaseMessaging.onBackgroundMessage((RemoteMessage message) async {
-      await service.showNotification(
-          id: 0,
-          title: 'Teslimat Hazır!',
-          body: 'Teslimat için hedef konuma gidiniz!');
-    });*/
-
     super.initState();
-    setState(() {
-      print("abc");
+    WidgetsBinding.instance!.addPostFrameCallback((_) async {
+      service = LocalNotificationService();
+      service.intialize();
+
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        // Not firing
+        print("Sipariş Hazır!");
+        await service.showNotification(
+            id: 0,
+            title: 'Teslimat Hazır!',
+            body: 'Teslimat için hedef konuma gidiniz!');
+        print('Kuryeden Mesaj geldi!');
+      });
+
+      FirebaseMessaging.onBackgroundMessage((RemoteMessage message) async {
+        await service.showNotification(
+            id: 0,
+            title: 'Teslimat Hazır!',
+            body: 'Teslimat için hedef konuma gidiniz!');
+      });
     });
   }
 
@@ -99,7 +68,7 @@ class _CourierPageState extends State<CourierPage> {
               height: 450,
               child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
-                      .collection(userId + ".CurrentRestaurantBasket")
+                      .collection("CurrentUser")
                       .snapshots(),
                   builder: (BuildContext context,
                       AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -110,77 +79,183 @@ class _CourierPageState extends State<CourierPage> {
                       //return const Text("Loading");
                     }
 
-                    final data = snapshot.requireData;
+                    final firstData = snapshot.requireData;
 
-                    if (data.size > 0) {
-                      restaurantName = data.docs.first['restaurant_name'];
-                      restaurantAddress = data.docs.first['restaurant_address'];
+                    userId = firstData.docs.first['user_id'];
 
+                    if (firstData.size > 0) {
+                      return StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection("DetailedUser")
+                              .snapshots(),
+                          builder: (BuildContext context,
+                              AsyncSnapshot<QuerySnapshot> snapshot) {
+                            if (snapshot.hasError) {
+                              //return Text('Something went wrong!');
+                            }
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              //return Text("Loading");
+                            }
+
+                            final secondData = snapshot.requireData;
+
+                            for (var i = 0; i < secondData.size; i++) {
+                              if (secondData.docs[i].id == userId) {
+                                userAddress = secondData.docs[i]['address'];
+                                break;
+                              }
+                            }
+
+                            Provider.of<AddressesProvider>(context,
+                                    listen: false)
+                                .setOrderAddress(userAddress);
+
+                            return StreamBuilder<QuerySnapshot>(
+                                stream: FirebaseFirestore.instance
+                                    .collection(
+                                        userId + ".CurrentRestaurantBasket")
+                                    .snapshots(),
+                                builder: (BuildContext context,
+                                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                                  if (snapshot.hasError) {
+                                    //return Text('Something went wrong!');
+                                  }
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    //return Text("Loading");
+                                  }
+
+                                  final data = snapshot.requireData.docs;
+
+                                  productBasketList.clear();
+
+                                  for (var i = 0; i < data.length; i++) {
+                                    productBasketList.add(ProductProduct(
+                                      price: data[i]['price'],
+                                      name: data[i]['name'],
+                                      text: data[i]['text'],
+                                      quantitiy: data[i]['quantitiy'],
+                                      restaurantName: data[i]
+                                          ['restaurant_name'],
+                                      restaurantAddress: data[i]
+                                          ['restaurant_address'],
+                                    ));
+                                    restaurantName = data[i]['restaurant_name'];
+                                    restaurantAddress =
+                                        data[i]['restaurant_address'];
+                                  }
+
+                                  Provider.of<AddressesProvider>(context,
+                                          listen: false)
+                                      .setRestaurantAddress(restaurantAddress);
+
+                                  return Column(
+                                    children: [
+                                      Container(
+                                        height: 80,
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: kOrderPageButtonColor,
+                                          border: Border.all(
+                                            color: Colors.black,
+                                            width: 2,
+                                          ),
+                                          borderRadius: const BorderRadius.only(
+                                            bottomLeft: Radius.circular(15),
+                                            bottomRight: Radius.circular(15),
+                                          ),
+                                        ),
+                                        child: Center(
+                                          child: Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 20),
+                                            child: Text(
+                                              restaurantName,
+                                              style: const TextStyle(
+                                                fontSize: 26,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Flexible(
+                                        child: ListView.builder(
+                                            itemCount: productBasketList.length,
+                                            itemBuilder: ((context, index) {
+                                              return Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  CourierCard(
+                                                    title:
+                                                        productBasketList[index]
+                                                            .name,
+                                                    content:
+                                                        productBasketList[index]
+                                                            .text,
+                                                    price:
+                                                        productBasketList[index]
+                                                            .price,
+                                                    quantity:
+                                                        productBasketList[index]
+                                                            .quantitiy,
+                                                  ),
+                                                ],
+                                              );
+                                            })),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              "Restorant Adresi: " +
+                                                  Provider.of<AddressesProvider>(
+                                                          context)
+                                                      .restaurantAddress,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                color: kOrderPageTextColor,
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              height: 10,
+                                            ),
+                                            Text(
+                                              "Sipariş Adresi: " +
+                                                  Provider.of<AddressesProvider>(
+                                                          context)
+                                                      .orderAddress,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                color: kOrderPageTextColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        height: 20,
+                                      ),
+                                    ],
+                                  );
+                                });
+                          });
+                      /**/
+                      ;
+                    } else {
                       return Column(
-                        children: [
-                          Container(
-                            height: 80,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: kOrderPageButtonColor,
-                              border: Border.all(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                              borderRadius: const BorderRadius.only(
-                                bottomLeft: Radius.circular(15),
-                                bottomRight: Radius.circular(15),
-                              ),
-                            ),
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 20),
-                                child: Text(
-                                  restaurantName,
-                                  style: const TextStyle(
-                                    fontSize: 26,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
+                        children: const [
+                          SizedBox(
+                            height: 100,
                           ),
-                          Flexible(
-                            child: ListView.builder(
-                                itemCount: data.size,
-                                itemBuilder: ((context, index) {
-                                  return Row(children: [
-                                    CourierCard(
-                                      title: data.docs[index]['name'],
-                                      content: data.docs[index]['text'],
-                                      price: data.docs[index]['price'],
-                                      quantity: data.docs[index]['quantitiy'],
-                                    ),
-                                  ]);
-                                })),
-                          ),
-                          Text(
-                            "Restorant Adresi: " + restaurantAddress,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: kOrderPageTextColor,
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 10,
-                          ),
-                          Text(
-                            "Sipariş Adresi: " + restaurantAddress,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: kOrderPageTextColor,
-                            ),
-                          ),
+                          Text("Sipariş yok! Lütfen bekleme konumuna gidiniz!"),
                         ],
                       );
-                    } else {
-                      return const Text(
-                          "Sipariş yok! Lütfen bekleme konumuna gidiniz!");
                     }
                   }),
             ),
@@ -252,6 +327,53 @@ class _CourierPageState extends State<CourierPage> {
   }
 }
 
+Future<void> getDetailedUserAddress() async {
+  CollectionReference _collectionRef =
+      FirebaseFirestore.instance.collection("DetailedUser");
+  // Get docs from collection reference
+  QuerySnapshot querySnapshot = await _collectionRef.get();
+  // Get data from docs and convert map to List
+}
+
+Future<void> getCurrentRestaurantBasket() async {
+  CollectionReference _collectionRef = FirebaseFirestore.instance
+      .collection(userId + ".CurrentRestaurantBasket");
+  // Get docs from collection reference
+  QuerySnapshot querySnapshot = await _collectionRef.get();
+  // Get data from docs and convert map to List
+  final data = querySnapshot.docs;
+
+  productBasketList.clear();
+
+  for (var i = 0; i < data.length; i++) {
+    productBasketList.add(ProductProduct(
+      price: data[i]['price'],
+      name: data[i]['name'],
+      text: data[i]['text'],
+      quantitiy: data[i]['quantitiy'],
+      restaurantName: data[i]['restaurant_name'],
+      restaurantAddress: data[i]['restaurant_address'],
+    ));
+    restaurantName = data[i]['restaurant_name'];
+    restaurantAddress = data[i]['restaurant_address'];
+  }
+}
+
+class AddressesProvider with ChangeNotifier {
+  String orderAddress = "";
+  String restaurantAddress = "";
+
+  void setOrderAddress(String order_address) {
+    orderAddress = order_address;
+    notifyListeners();
+  }
+
+  void setRestaurantAddress(String res_address) {
+    restaurantAddress = res_address;
+    notifyListeners();
+  }
+}
+
 class CourierCard extends StatelessWidget {
   final String? title;
   final double? price;
@@ -276,7 +398,7 @@ class CourierCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
       child: Container(
         height: size.height * 0.13,
-        width: size.width * 0.9,
+        width: size.width * 0.80,
         decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             color: kOrderPageButtonColor,
@@ -319,7 +441,7 @@ class CourierCard extends StatelessWidget {
                                   content! +
                                   " )",
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 color: Colors.white,
                               ),
                             ),
@@ -334,7 +456,9 @@ class CourierCard extends StatelessWidget {
                           Text(
                             "Fiyat: ₺" + price!.toStringAsFixed(2),
                             style: const TextStyle(
-                                fontSize: 16, color: Colors.white),
+                              fontSize: 16,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
