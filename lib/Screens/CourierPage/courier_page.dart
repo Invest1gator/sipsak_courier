@@ -373,82 +373,89 @@ class _CourierPageState extends State<CourierPage> {
                                                       SizedBox(
                                                         width: 5,
                                                       ),
-                                                      GestureDetector(
-                                                        onTap: () async {
-                                                          setState(() {
-                                                            isArrivedUser =
-                                                                true;
-                                                          });
+                                                      isArrivedBase
+                                                          ? GestureDetector(
+                                                              onTap: () async {
+                                                                setState(() {
+                                                                  isArrivedUser =
+                                                                      true;
+                                                                });
 
-                                                          Provider.of<CourierStateProvider>(
-                                                                  context,
-                                                                  listen: false)
-                                                              .setGoingUser();
-                                                          // User Basket delete
-                                                          // Send notification to User and local
-                                                          String device_token =
-                                                              "";
+                                                                Provider.of<CourierStateProvider>(
+                                                                        context,
+                                                                        listen:
+                                                                            false)
+                                                                    .setGoingUser();
+                                                                // User Basket delete
+                                                                // Send notification to User and local
+                                                                String
+                                                                    device_token =
+                                                                    "";
 
-                                                          CollectionReference
-                                                              _collectionRef =
-                                                              FirebaseFirestore
-                                                                  .instance
-                                                                  .collection(
-                                                                      "CurrentUser");
-                                                          // Get docs from collection reference
-                                                          QuerySnapshot
-                                                              querySnapshot =
-                                                              await _collectionRef
-                                                                  .get();
-                                                          // Get data from docs and convert map to List
-                                                          final data =
-                                                              querySnapshot
-                                                                  .docs;
+                                                                CollectionReference
+                                                                    _collectionRef =
+                                                                    FirebaseFirestore
+                                                                        .instance
+                                                                        .collection(
+                                                                            "CurrentUser");
+                                                                // Get docs from collection reference
+                                                                QuerySnapshot
+                                                                    querySnapshot =
+                                                                    await _collectionRef
+                                                                        .get();
+                                                                // Get data from docs and convert map to List
+                                                                final data =
+                                                                    querySnapshot
+                                                                        .docs;
 
-                                                          for (var i = 0;
-                                                              i < data.length;
-                                                              i++) {
-                                                            device_token = data[
-                                                                    i][
-                                                                'device_token'];
-                                                          }
+                                                                for (var i = 0;
+                                                                    i < data.length;
+                                                                    i++) {
+                                                                  device_token =
+                                                                      data[i][
+                                                                          'device_token'];
+                                                                }
 
-                                                          fcm.callOnFcmApiSendPushNotifications(
-                                                              title:
-                                                                  'Siparişiniz Gelmek Üzere!',
-                                                              body:
-                                                                  'Kuryemiz çok yakında kapınızda olacak!',
-                                                              device_token:
-                                                                  device_token);
-                                                        },
-                                                        child: Expanded(
-                                                          flex: 1,
-                                                          child: Container(
-                                                            height: 50,
-                                                            width: 50,
-                                                            child: const Icon(
-                                                              Icons.check,
-                                                              size: 28,
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: isArrivedUser
-                                                                  ? kOrderPageButtonColor
-                                                                  : Colors.grey,
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          100),
-                                                              border: Border.all(
-                                                                  color: Colors
-                                                                      .black,
-                                                                  width: 2),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
+                                                                fcm.callOnFcmApiSendPushNotifications(
+                                                                    title:
+                                                                        'Siparişiniz Gelmek Üzere!',
+                                                                    body:
+                                                                        'Kuryemiz çok yakında kapınızda olacak!',
+                                                                    device_token:
+                                                                        device_token);
+                                                              },
+                                                              child: Expanded(
+                                                                flex: 1,
+                                                                child:
+                                                                    Container(
+                                                                  height: 50,
+                                                                  width: 50,
+                                                                  child:
+                                                                      const Icon(
+                                                                    Icons.check,
+                                                                    size: 28,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: isArrivedUser
+                                                                        ? kOrderPageButtonColor
+                                                                        : Colors
+                                                                            .grey,
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            100),
+                                                                    border: Border.all(
+                                                                        color: Colors
+                                                                            .black,
+                                                                        width:
+                                                                            2),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            )
+                                                          : Container(),
                                                     ],
                                                   ),
                                                 ],
@@ -671,93 +678,101 @@ class _CourierPageState extends State<CourierPage> {
                                                   const SizedBox(
                                                     height: 30,
                                                   ),
-                                                  Row(
-                                                    children: [
-                                                      Text(
-                                                        "Sipariş Adresi: " +
-                                                            Provider.of<AddressesProvider>(
-                                                                    context)
-                                                                .orderAddress,
-                                                        style: const TextStyle(
-                                                          fontSize: 16,
-                                                          color:
-                                                              kOrderPageTextColor,
-                                                        ),
-                                                      ),
-                                                      GestureDetector(
-                                                        onTap: () async {
-                                                          setState(() {
-                                                            isArrivedUser =
-                                                                true;
-                                                          });
+                                                  isArrivedBase
+                                                      ? Row(
+                                                          children: [
+                                                            Text(
+                                                              "Sipariş Adresi: " +
+                                                                  Provider.of<AddressesProvider>(
+                                                                          context)
+                                                                      .orderAddress,
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontSize: 16,
+                                                                color:
+                                                                    kOrderPageTextColor,
+                                                              ),
+                                                            ),
+                                                            GestureDetector(
+                                                              onTap: () async {
+                                                                setState(() {
+                                                                  isArrivedUser =
+                                                                      true;
+                                                                });
 
-                                                          Provider.of<CourierStateProvider>(
-                                                                  context,
-                                                                  listen: false)
-                                                              .setGoingUser();
-                                                          // User Basket delete
-                                                          // Send notification to User and local
-                                                          String device_token =
-                                                              "";
+                                                                Provider.of<CourierStateProvider>(
+                                                                        context,
+                                                                        listen:
+                                                                            false)
+                                                                    .setGoingUser();
+                                                                // User Basket delete
+                                                                // Send notification to User and local
+                                                                String
+                                                                    device_token =
+                                                                    "";
 
-                                                          CollectionReference
-                                                              _collectionRef =
-                                                              FirebaseFirestore
-                                                                  .instance
-                                                                  .collection(
-                                                                      "CurrentUser");
-                                                          // Get docs from collection reference
-                                                          QuerySnapshot
-                                                              querySnapshot =
-                                                              await _collectionRef
-                                                                  .get();
-                                                          // Get data from docs and convert map to List
-                                                          final data =
-                                                              querySnapshot
-                                                                  .docs;
+                                                                CollectionReference
+                                                                    _collectionRef =
+                                                                    FirebaseFirestore
+                                                                        .instance
+                                                                        .collection(
+                                                                            "CurrentUser");
+                                                                // Get docs from collection reference
+                                                                QuerySnapshot
+                                                                    querySnapshot =
+                                                                    await _collectionRef
+                                                                        .get();
+                                                                // Get data from docs and convert map to List
+                                                                final data =
+                                                                    querySnapshot
+                                                                        .docs;
 
-                                                          for (var i = 0;
-                                                              i < data.length;
-                                                              i++) {
-                                                            device_token = data[
-                                                                    i][
-                                                                'device_token'];
-                                                          }
+                                                                for (var i = 0;
+                                                                    i < data.length;
+                                                                    i++) {
+                                                                  device_token =
+                                                                      data[i][
+                                                                          'device_token'];
+                                                                }
 
-                                                          fcm.callOnFcmApiSendPushNotifications(
-                                                              title:
-                                                                  'Siparişiniz Gelmek Üzere!',
-                                                              body:
-                                                                  'Kuryemiz çok yakında kapınızda olacak!',
-                                                              device_token:
-                                                                  device_token);
-                                                        },
-                                                        child: Container(
-                                                          height: 50,
-                                                          width: 50,
-                                                          child: const Icon(
-                                                            Icons.check,
-                                                            size: 28,
-                                                            color: Colors.white,
-                                                          ),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: isArrivedUser
-                                                                ? kOrderPageButtonColor
-                                                                : Colors.grey,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        100),
-                                                            border: Border.all(
-                                                                color: Colors
-                                                                    .black,
-                                                                width: 2),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
+                                                                fcm.callOnFcmApiSendPushNotifications(
+                                                                    title:
+                                                                        'Siparişiniz Gelmek Üzere!',
+                                                                    body:
+                                                                        'Kuryemiz çok yakında kapınızda olacak!',
+                                                                    device_token:
+                                                                        device_token);
+                                                              },
+                                                              child: Container(
+                                                                height: 50,
+                                                                width: 50,
+                                                                child:
+                                                                    const Icon(
+                                                                  Icons.check,
+                                                                  size: 28,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: isArrivedUser
+                                                                      ? kOrderPageButtonColor
+                                                                      : Colors
+                                                                          .grey,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              100),
+                                                                  border: Border.all(
+                                                                      color: Colors
+                                                                          .black,
+                                                                      width: 2),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        )
+                                                      : Container(),
                                                 ],
                                               ),
                                             ),
