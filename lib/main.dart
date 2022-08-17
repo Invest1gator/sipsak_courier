@@ -23,6 +23,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => AddressesProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => CourierStateProvider(),
+        ),
       ],
       child: MaterialApp(
         title: 'Flutter Demoo!!',

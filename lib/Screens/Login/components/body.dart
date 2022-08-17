@@ -19,7 +19,6 @@ import '../../../Location/CourierMap.dart';
 import 'background.dart';
 
 class Body extends StatelessWidget {
-  FCMNotificaiton fcm = new FCMNotificaiton();
 
   @override
   Widget build(BuildContext context) {
@@ -56,24 +55,6 @@ class Body extends StatelessWidget {
               color: kPrimaryColor,
               textColor: kTextColorWhite,
               press: () async {
-                String device_token = "";
-
-                CollectionReference _collectionRef =
-                    FirebaseFirestore.instance.collection("CurrentUser");
-                // Get docs from collection reference
-                QuerySnapshot querySnapshot = await _collectionRef.get();
-                // Get data from docs and convert map to List
-                final data = querySnapshot.docs;
-
-                for (var i = 0; i < data.length; i++) {
-                  device_token = data[i]['device_token'];
-                }
-
-                fcm.callOnFcmApiSendPushNotifications(
-                    title: 'Siparişiniz Gelmek Üzere!',
-                    body: 'Kuryemiz çok yakında kapınızda olacak!',
-                    device_token: device_token);
-
                 // Get Courier Token
 
                 String? token = await FirebaseMessaging.instance.getToken();
