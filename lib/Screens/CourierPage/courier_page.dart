@@ -187,6 +187,8 @@ class _CourierPageState extends State<CourierPage> {
                                               return Row(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.center,
                                                 children: [
                                                   CourierCard(
                                                     title:
@@ -245,8 +247,6 @@ class _CourierPageState extends State<CourierPage> {
                                   );
                                 });
                           });
-                      /**/
-                      ;
                     } else {
                       return Column(
                         children: const [
@@ -324,38 +324,6 @@ class _CourierPageState extends State<CourierPage> {
         },
       ),
     );
-  }
-}
-
-Future<void> getDetailedUserAddress() async {
-  CollectionReference _collectionRef =
-      FirebaseFirestore.instance.collection("DetailedUser");
-  // Get docs from collection reference
-  QuerySnapshot querySnapshot = await _collectionRef.get();
-  // Get data from docs and convert map to List
-}
-
-Future<void> getCurrentRestaurantBasket() async {
-  CollectionReference _collectionRef = FirebaseFirestore.instance
-      .collection(userId + ".CurrentRestaurantBasket");
-  // Get docs from collection reference
-  QuerySnapshot querySnapshot = await _collectionRef.get();
-  // Get data from docs and convert map to List
-  final data = querySnapshot.docs;
-
-  productBasketList.clear();
-
-  for (var i = 0; i < data.length; i++) {
-    productBasketList.add(ProductProduct(
-      price: data[i]['price'],
-      name: data[i]['name'],
-      text: data[i]['text'],
-      quantitiy: data[i]['quantitiy'],
-      restaurantName: data[i]['restaurant_name'],
-      restaurantAddress: data[i]['restaurant_address'],
-    ));
-    restaurantName = data[i]['restaurant_name'];
-    restaurantAddress = data[i]['restaurant_address'];
   }
 }
 
