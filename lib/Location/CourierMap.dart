@@ -2,13 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:courier_app/models/directionDetails.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 //import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocode/geocode.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import '../constant.dart';
+import 'package:google_maps_flutter_platform_interface/src/types/marker_updates.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'FastDeliveryAlgrorithm.dart';
@@ -23,6 +24,11 @@ late LatLng currentLatLng;
 String googleAPiKey = "AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
 LatLng endLocation = const LatLng(38.467249, 27.208174);
 LatLng startLocation = const LatLng(0, 0);
+DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
+String? a = " ";
+String? b = " ";
+int courrierState = -1;
+// -1 idle, 0 to restaurant, 1 to customer
 
 class MapPage extends StatefulWidget {
   @override
@@ -34,12 +40,14 @@ class HomePageState extends State<MapPage> {
   late GoogleMapController mapController;
   Map<PolylineId, Polyline> polylines = {}; //polylines to show direction
   Set<Marker> _markers = Set<Marker>();
-  //PolylinePoints polylinePoints = PolylinePoints();
-
+  PolylinePoints polylinePoints = PolylinePoints();
+  BitmapDescriptor currentLocationIcon = BitmapDescriptor.defaultMarker;
   @override
   void initState() {
     initStartLoc();
-
+    if (courrierState == 0 || courrierState == 1) {
+      _markers.clear();
+    }
     _markers.add(Marker(
       //add start location marker
       markerId: MarkerId(startLocation.toString()),
@@ -49,11 +57,11 @@ class HomePageState extends State<MapPage> {
         title: 'Starting Point ',
         snippet: 'Start Marker',
       ),
-      icon: BitmapDescriptor.defaultMarker, //Icon for Marker
+      icon: currentLocationIcon, //Icon for Marker
     ));
 
     _markers.add(Marker(
-      //add distination location marker
+      //add destination location marker
       markerId: MarkerId(endLocation.toString()),
       position: endLocation, //position of marker
       infoWindow: const InfoWindow(
@@ -63,9 +71,69 @@ class HomePageState extends State<MapPage> {
       ),
       icon: BitmapDescriptor.defaultMarker, //Icon for Marker
     ));
-    super.initState();
 
+    super.initState();
+    Timer.periodic(const Duration(seconds: 5), (Timer t) => upDateMarkers());
     getDirections(); //fetch direction polylines from Google API
+  }
+
+  void setCustomerMarkerIcon() {
+    BitmapDescriptor.fromAssetImage(ImageConfiguration.empty, "assets/moto.png")
+        .then(
+      (icon) {
+        currentLocationIcon = icon;
+      },
+    );
+  }
+
+  Future<void> upDateMarkers() async {
+    List<Marker> updatedMarkers =
+        []; //new markers with updated position go here
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best);
+
+    LatLng pos = LatLng(position.latitude, position.longitude);
+
+    updatedMarkers = [];
+
+    /// Then call the SetState function.
+    /// I called the MarkersUpdate class inside the setState function.
+    /// You can do it your way but remember to call the setState function so that the updated markers reflect on your Flutter app.
+    /// Ps: I did not try the second way where the MarkerUpdate is called outside the setState buttechnically it should work.
+    setState(() {
+      MarkerUpdates.from(
+          Set<Marker>.from(_markers), Set<Marker>.from(updatedMarkers));
+      _markers.clear();
+      _markers.add(
+        Marker(
+          //add start location marker
+          markerId: MarkerId(startLocation.toString()),
+          position: pos, //position of marker
+          infoWindow: const InfoWindow(
+            //popup info
+            title: 'Starting Point ',
+            snippet: 'Start Marker',
+          ),
+          icon: currentLocationIcon, //Icon for Marker
+        ),
+      );
+
+      _markers.add(Marker(
+        //add destination location marker
+        markerId: MarkerId(endLocation.toString()),
+        position: endLocation, //position of marker
+        infoWindow: const InfoWindow(
+          //popup info
+          title: 'Destination Point ',
+          snippet: 'Destination Marker',
+        ),
+        icon: BitmapDescriptor.defaultMarker, //Icon for Marker
+      ));
+      print(
+          "CHANGEDMARKER!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+      //swap of markers so that on next marker update the previous marker would be the one which you updated now.
+// And even on the next app startup, it takes the updated markers to show on the map.
+    });
   }
 
   Future<void> initStartLoc() async {
@@ -82,13 +150,13 @@ class HomePageState extends State<MapPage> {
     LatLng startLocation = LatLng(position.latitude, position.longitude);
     print(" START LOCATION  ----------------->  $startLocation");
     print(" END LOCATION  ----------------->  $endLocation");
-    /*PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+
+    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
       googleAPiKey,
       PointLatLng(startLocation.latitude, startLocation.longitude),
       PointLatLng(endLocation.latitude, endLocation.longitude),
       travelMode: TravelMode.driving,
     );
-
     if (result.points.isNotEmpty) {
       result.points.forEach((PointLatLng point) {
         polylineCoordinates.add(LatLng(point.latitude, point.longitude));
@@ -99,7 +167,7 @@ class HomePageState extends State<MapPage> {
     }
     print("my points");
     print(result.points);
-    addPolyLine(polylineCoordinates);*/
+    addPolyLine(polylineCoordinates);
   }
 
   addPolyLine(List<LatLng> polylineCoordinates) {
@@ -146,12 +214,16 @@ class HomePageState extends State<MapPage> {
                 onPressed: () async {
                   /*;*/
                   Position position = await _determinePosition();
-                  print("QQQQQQQQQQQQQQQQQQQ");
                   _gotoLocation(
                     LatLng(position.latitude, position.longitude).latitude,
                     LatLng(position.latitude, position.longitude).longitude,
                   );
+                  setState(() {
+                    polylines.clear();
+                  });
 
+                  Timer.periodic(
+                      const Duration(seconds: 5), (Timer t) => getDirections());
                   // generateList();
                 },
               ),
@@ -173,6 +245,8 @@ class HomePageState extends State<MapPage> {
   Widget _buildGoogleMap(BuildContext context) {
     // Builds google map with initial manuel target.
     // Updates the target "_gotoLocation" function
+    var height = MediaQuery.of(context).size.height;
+    var width = MediaQuery.of(context).size.width;
 
     return SizedBox(
       height: !showPopUp
@@ -199,17 +273,17 @@ class HomePageState extends State<MapPage> {
           ),
           //from 0-1, 0.5 = 50% opacity
           Container(
-            margin: const EdgeInsets.fromLTRB(100, 0, 100, 0),
-            child: const Opacity(
-              opacity: 0.8,
+            margin: EdgeInsets.fromLTRB(width * 0.33, 0, width * 0.25, 0),
+            child: Opacity(
+              opacity: 0.5,
               child: SizedBox(
-                width: 100.0,
+                width: 350.0,
                 height: 50.0,
                 child: Card(
                   child: Text(
-                    '15 dk \n 5 km',
-                    style: TextStyle(
-                        color: Colors.cyanAccent,
+                    'Süre: $a \nMesafe: $b',
+                    style: const TextStyle(
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                         fontSize: 18),
                   ),
@@ -231,6 +305,32 @@ class HomePageState extends State<MapPage> {
     )));
   }
 }
+
+final Set<Circle> _circles = Set<Circle>();
+var radiusValue = 3000.0;
+
+// point i verip circle ı oluşturabiliriz
+/*Future<void> _setCircle(LatLng point) async {
+  Completer<GoogleMapController> _controller = Completer();
+  final GoogleMapController controller = await _controller.future;
+
+  controller.animateCamera(
+      CameraUpdate.newCameraPosition(CameraPosition(target: point, zoom: 12)));
+  setState(() {
+    _circles.add(Circle(
+        circleId: CircleId('raj'),
+        center: point,
+        fillColor: Colors.blue.withOpacity(0.1),
+        radius: radiusValue,
+        strokeColor: Colors.blue,
+        strokeWidth: 1));
+    //getDirections = false;
+    //searchToggle = false;
+    //radiusSlider = true;
+  });
+  print("------------------------> CIRCLE SET.");
+}
+*/
 
 Future<Position> _determinePosition() async {
   bool serviceEnabled;
@@ -287,8 +387,10 @@ Future<DirectionDetails> obtainPlaceDirectionDetails(
       responseData["routes"][0]['legs'][0]['duration']["text"];
   directionDetails.durationValue =
       responseData["routes"][0]['legs'][0]['duration']["value"];
-  var a = directionDetails.durationText;
-  print("HEEEEEIIYOOOOOOOOO $a");
+  a = directionDetails.durationText;
+  b = directionDetails.distanceText;
+  print("HEEEEEIIYOOOOOOOOO durationText :$a");
+  print("HEEEEEIIYOOOOOOOOO distanceText :$b");
   return directionDetails;
 }
 
@@ -324,7 +426,6 @@ Future<DirectionDetails> obtainPlaceDirectionDetails(
             new LatLng(currLocation.latitude, currLocation.longitude);
       });
     });
-
     print("currentLatLng : $currentLatLng.longitude  $currentLatLng.latitude ");
     _gotoLocation(currentLatLng.latitude, currentLatLng.longitude);
   }
@@ -372,7 +473,6 @@ Future<DirectionDetails> obtainPlaceDirectionDetails(
       ),
     );
   }
-
   Widget _boxes(String _image, double lat, double long, String restaurantName) {
     return GestureDetector(
       onTap: () {
@@ -409,7 +509,6 @@ Future<DirectionDetails> obtainPlaceDirectionDetails(
       ),
     );
   }
-
   Widget myDetailsContainer1(String restaurantName) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -515,7 +614,6 @@ Future<DirectionDetails> obtainPlaceDirectionDetails(
       BitmapDescriptor.hueOrange,
     ),
   );
-
   Marker donerciomerustaMarker = Marker(
     markerId: MarkerId('Dönerci Ömer Usta'),
     position: LatLng(38.434478, 27.203072),
@@ -537,7 +635,6 @@ Future<DirectionDetails> obtainPlaceDirectionDetails(
 /*
   void getLocationOnChanged() async {
     var location = await currentLocation.getLocation();
-
     Completer<GoogleMapController> _controller = Completer()!;
     final _controller_ = await _controller.future!;
     currentLocation.onLocationChanged.listen((LocationData loc) {
