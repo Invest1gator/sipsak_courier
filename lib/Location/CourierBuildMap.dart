@@ -6,7 +6,15 @@ import 'CourierMap.dart';
 import '../constant.dart';
 
 class CourierBuildMap extends StatefulWidget {
-  const CourierBuildMap({Key? key}) : super(key: key);
+  final String? firstEndLocation;
+  final String? secondEndLocation;
+  final int? courrierState;
+  const CourierBuildMap(
+      {Key? key,
+      this.firstEndLocation,
+      this.secondEndLocation,
+      this.courrierState})
+      : super(key: key);
 
   @override
   HomePageState createState() => HomePageState();
@@ -57,7 +65,10 @@ class HomePageState extends State<CourierBuildMap> {
         ),
         backgroundColor: kOrderPageButtonColor,
       ),
-      body: MapPage(),
+      body: MapPage(
+          firstEndLocation: widget.firstEndLocation,
+          secondEndLocation: widget.secondEndLocation,
+          courrierState: widget.courrierState),
     );
   }
 }
