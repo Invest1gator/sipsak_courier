@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:courier_app/Screens/CourierPage/product_product.dart';
 import 'package:courier_app/local_notificaiton_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -21,10 +22,9 @@ String userAddress = "";
 bool isRestaurant = true;
 bool isArrivedBase = false;
 bool isArrivedUser = false;
+bool isFinish = false;
 
 class CourierPage extends StatefulWidget {
-  
-
   @override
   State<CourierPage> createState() => _CourierPageState();
 }
@@ -42,12 +42,21 @@ class _CourierPageState extends State<CourierPage> {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
         // Not firing
         print("Sipariş Hazır!");
-        await service.showNotification(
-            id: 0,
-            title: 'Teslimat Hazır!',
-            body: 'Teslimat için hedef konuma gidiniz!');
-        print('Kuryeden Mesaj geldi!');
-        if (message.data['type'].toString() == "Restaurant") {
+        if (message.data['type'].toString() == 'RestaurantMobil' ||
+            message.data['type'].toString() == 'MarketMobil') {
+          await service.showNotification(
+              id: 0,
+              title: 'Kullanıcıdan Sipariş Geldi!',
+              body: 'Lütfen hedef konuma gidiniz!');
+          print('Kuryeden Mesaj geldi!');
+        } else {
+          await service.showNotification(
+              id: 0,
+              title: 'Teslimat Hazır!',
+              body: 'Teslimat için hedef konuma gidiniz!');
+        }
+        if (message.data['type'].toString() == "Restaurant" ||
+            message.data['type'].toString() == "RestaurantMobil") {
           setState(() {
             isRestaurant = true;
           });
@@ -311,14 +320,6 @@ class _CourierPageState extends State<CourierPage> {
                                                                     i][
                                                                 'device_token'];
                                                           }
-
-                                                          fcm.callOnFcmApiSendPushNotifications(
-                                                              title:
-                                                                  'Siparişiniz Gelmek Üzere!',
-                                                              body:
-                                                                  'Kuryemiz çok yakında kapınızda olacak!',
-                                                              device_token:
-                                                                  device_token);
                                                         },
                                                         child: Expanded(
                                                           flex: 1,
@@ -351,7 +352,7 @@ class _CourierPageState extends State<CourierPage> {
                                                     ],
                                                   ),
                                                   const SizedBox(
-                                                    width: 20,
+                                                    height: 30,
                                                   ),
                                                   Row(
                                                     children: [
@@ -418,11 +419,13 @@ class _CourierPageState extends State<CourierPage> {
 
                                                                 fcm.callOnFcmApiSendPushNotifications(
                                                                     title:
-                                                                        'Siparişiniz Gelmek Üzere!',
+                                                                        'Kuryemiz restoranttan ayrıldı!',
                                                                     body:
                                                                         'Kuryemiz çok yakında kapınızda olacak!',
                                                                     device_token:
-                                                                        device_token);
+                                                                        device_token,
+                                                                    from:
+                                                                        "Restaurant");
                                                               },
                                                               child: Expanded(
                                                                 flex: 1,
@@ -593,12 +596,15 @@ class _CourierPageState extends State<CourierPage> {
                                                 children: [
                                                   Row(
                                                     children: [
-                                                      const Text(
-                                                        "Market Adresi: Sekomların Evi",
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          color:
-                                                              kOrderPageTextColor,
+                                                      const Expanded(
+                                                        flex: 4,
+                                                        child: Text(
+                                                          "Market Adresi: Sekomların Evi",
+                                                          style: TextStyle(
+                                                            fontSize: 16,
+                                                            color:
+                                                                kOrderPageTextColor,
+                                                          ),
                                                         ),
                                                       ),
                                                       const SizedBox(
@@ -644,32 +650,34 @@ class _CourierPageState extends State<CourierPage> {
                                                                     i][
                                                                 'device_token'];
                                                           }
-
-                                                          fcm.callOnFcmApiSendPushNotifications(
-                                                              title:
-                                                                  'Siparişiniz Gelmek Üzere!',
-                                                              body:
-                                                                  'Kuryemiz çok yakında kapınızda olacak!',
-                                                              device_token:
-                                                                  device_token);
                                                         },
-                                                        child: Container(
-                                                          height: 50,
-                                                          width: 50,
-                                                          child: const Icon(
-                                                            Icons.check,
-                                                            size: 28,
-                                                            color: Colors.white,
-                                                          ),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: isArrivedBase
-                                                                ? kOrderPageButtonColor
-                                                                : Colors.grey,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                                        100),
+                                                        child: Expanded(
+                                                          flex: 1,
+                                                          child: Container(
+                                                            height: 50,
+                                                            width: 50,
+                                                            child: const Icon(
+                                                              Icons.check,
+                                                              size: 28,
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: isArrivedBase
+                                                                  ? kOrderPageButtonColor
+                                                                  : Colors.grey,
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          100),
+                                                              border:
+                                                                  Border.all(
+                                                                color: Colors
+                                                                    .black,
+                                                                width: 2,
+                                                              ),
+                                                            ),
                                                           ),
                                                         ),
                                                       ),
@@ -678,22 +686,28 @@ class _CourierPageState extends State<CourierPage> {
                                                   const SizedBox(
                                                     height: 30,
                                                   ),
-                                                  isArrivedBase
-                                                      ? Row(
-                                                          children: [
-                                                            Text(
-                                                              "Sipariş Adresi: " +
-                                                                  Provider.of<AddressesProvider>(
-                                                                          context)
-                                                                      .orderAddress,
-                                                              style:
-                                                                  const TextStyle(
-                                                                fontSize: 16,
-                                                                color:
-                                                                    kOrderPageTextColor,
-                                                              ),
-                                                            ),
-                                                            GestureDetector(
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        flex: 4,
+                                                        child: Text(
+                                                          "Sipariş Adresi: " +
+                                                              Provider.of<AddressesProvider>(
+                                                                      context)
+                                                                  .orderAddress,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 16,
+                                                            color:
+                                                                kOrderPageTextColor,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                        width: 5,
+                                                      ),
+                                                      isArrivedBase
+                                                          ? GestureDetector(
                                                               onTap: () async {
                                                                 setState(() {
                                                                   isArrivedUser =
@@ -737,42 +751,48 @@ class _CourierPageState extends State<CourierPage> {
 
                                                                 fcm.callOnFcmApiSendPushNotifications(
                                                                     title:
-                                                                        'Siparişiniz Gelmek Üzere!',
+                                                                        'Kurye marketten ayrıldı!',
                                                                     body:
                                                                         'Kuryemiz çok yakında kapınızda olacak!',
                                                                     device_token:
-                                                                        device_token);
+                                                                        device_token,
+                                                                    from:
+                                                                        "Market");
                                                               },
-                                                              child: Container(
-                                                                height: 50,
-                                                                width: 50,
+                                                              child: Expanded(
+                                                                flex: 1,
                                                                 child:
-                                                                    const Icon(
-                                                                  Icons.check,
-                                                                  size: 28,
-                                                                  color: Colors
-                                                                      .white,
-                                                                ),
-                                                                decoration:
-                                                                    BoxDecoration(
-                                                                  color: isArrivedUser
-                                                                      ? kOrderPageButtonColor
-                                                                      : Colors
-                                                                          .grey,
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              100),
-                                                                  border: Border.all(
-                                                                      color: Colors
-                                                                          .black,
-                                                                      width: 2),
+                                                                    Container(
+                                                                  height: 50,
+                                                                  width: 50,
+                                                                  child:
+                                                                      const Icon(
+                                                                    Icons.check,
+                                                                    size: 28,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: isArrivedUser
+                                                                        ? kOrderPageButtonColor
+                                                                        : Colors
+                                                                            .grey,
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            100),
+                                                                    border: Border.all(
+                                                                        color: Colors
+                                                                            .black,
+                                                                        width:
+                                                                            2),
+                                                                  ),
                                                                 ),
                                                               ),
-                                                            ),
-                                                          ],
-                                                        )
-                                                      : Container(),
+                                                            )
+                                                          : Container(),
+                                                    ],
+                                                  ),
                                                 ],
                                               ),
                                             ),
@@ -809,12 +829,44 @@ class _CourierPageState extends State<CourierPage> {
             isArrivedBase
                 ? isArrivedUser
                     ? GestureDetector(
-                        onTap: () {
+                        onTap: () async {
                           //
 
                           Provider.of<CourierStateProvider>(context,
                                   listen: false)
                               .setGoingOptimumPlace();
+
+                          String device_token = "";
+
+                          CollectionReference _collectionRef = FirebaseFirestore
+                              .instance
+                              .collection("CurrentUser");
+                          // Get docs from collection reference
+                          QuerySnapshot querySnapshot =
+                              await _collectionRef.get();
+                          // Get data from docs and convert map to List
+                          final data = querySnapshot.docs;
+
+                          for (var i = 0; i < data.length; i++) {
+                            device_token = data[i]['device_token'];
+                          }
+
+                          print(device_token);
+
+                          fcm.callOnFcmApiSendPushNotifications(
+                              title: "Siparişiniz Tamamlanmıştır!",
+                              body:
+                                  "Siparişiniz kuryemiz tarafından teslim edilmiştir.",
+                              device_token: device_token,
+                              from: "Finish");
+
+                          // Delete CurrentUserBasket respect by User id
+                          deleteCurrentBasket(userId);
+
+                          setState(() {
+                            isArrivedBase = false;
+                            isArrivedUser = false;
+                          });
                         },
                         child: Container(
                           height: 60,
@@ -883,7 +935,6 @@ class _CourierPageState extends State<CourierPage> {
             const SizedBox(
               height: 20,
             ),
-            const Text("Sipariş teslim edildi!"),
             SizedBox(
               height: size.height * 0.38,
               width: size.width * 1,
@@ -922,6 +973,24 @@ class _CourierPageState extends State<CourierPage> {
         },
       ),
     );
+  }
+}
+
+Future deleteCurrentBasket(String userId) async {
+  if (isRestaurant) {
+    var collection = FirebaseFirestore.instance
+        .collection(userId + ".CurrentRestaurantBasket");
+    var snapshots = await collection.get();
+    for (var doc in snapshots.docs) {
+      await doc.reference.delete();
+    }
+  } else {
+    var collection =
+        FirebaseFirestore.instance.collection(userId + ".CurrentMarketBasket");
+    var snapshots = await collection.get();
+    for (var doc in snapshots.docs) {
+      await doc.reference.delete();
+    }
   }
 }
 

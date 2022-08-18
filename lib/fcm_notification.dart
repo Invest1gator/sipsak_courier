@@ -7,6 +7,7 @@ class FCMNotificaiton {
     required String title,
     required String body,
     required String device_token,
+    required String from,
   }) async {
     const postUrl = 'https://fcm.googleapis.com/fcm/send';
     final data = {
@@ -16,7 +17,13 @@ class FCMNotificaiton {
         "body": body,
       },
       "data": {
-        "type": '0rder',
+        "type": from == "Restaurant"
+            ? 'Restaurant'
+            : from == "Market"
+                ? 'Market'
+                : from == "Finish"
+                    ? 'Finish'
+                    : '',
         "id": '28',
         "click_action": 'FLUTTER_NOTIFICATION_CLICK',
       }
