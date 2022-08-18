@@ -840,7 +840,7 @@ class _CourierPageState extends State<CourierPage> {
             ),
             Container(
               color: Colors.amber[200],
-              padding: const EdgeInsets.only(top: 5, bottom: 5),
+              padding: const EdgeInsets.only(top: 6, bottom: 6),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
