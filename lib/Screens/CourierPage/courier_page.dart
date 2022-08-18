@@ -863,7 +863,7 @@ class _CourierPageState extends State<CourierPage> {
                           // Delete CurrentUserBasket respect by User id
                           deleteCurrentBasket(userId);
 
-                          setState(() {
+                          setState(() { 
                             isArrivedBase = false;
                             isArrivedUser = false;
                           });
