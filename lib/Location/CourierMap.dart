@@ -28,10 +28,20 @@ LatLng startLocation = const LatLng(0, 0);
 DirectionDetails directionDetails = DirectionDetails(10, 10, "", "", "");
 String? a = " ";
 String? b = " ";
-int courrierState = -1;
+
 // -1 idle, 0 to restaurant, 1 to customer, 2 waiting point
 
 class MapPage extends StatefulWidget {
+  final String? firstEndLocation;
+  final String? secondEndLocation;
+  final int? courrierState;
+  const MapPage(
+      {Key? key,
+      this.firstEndLocation,
+      this.secondEndLocation,
+      this.courrierState})
+      : super(key: key);
+
   @override
   HomePageState createState() => HomePageState();
 }
@@ -46,9 +56,13 @@ class HomePageState extends State<MapPage> {
   @override
   void initState() {
     initStartLoc();
+    /* courrierState = Provider.of<CourierStateProvider>(context).courierState;
+
     if (courrierState == -1) {
       _markers.clear();
     }
+    */
+
     _markers.add(Marker(
       //add start location marker
       markerId: MarkerId(startLocation.toString()),
@@ -74,8 +88,6 @@ class HomePageState extends State<MapPage> {
     ));
 
     super.initState();
-
-    getDirections(); //fetch direction polylines from Google API
   }
 
   void setCustomerMarkerIcon() {
@@ -146,7 +158,7 @@ class HomePageState extends State<MapPage> {
     LatLng startLocation = LatLng(position.latitude, position.longitude);
   }
 
-  getDirections() async {
+  getDirections(BuildContext context) async {
     List<LatLng> polylineCoordinates = [];
 
     Position position = await Geolocator.getCurrentPosition(
@@ -154,6 +166,33 @@ class HomePageState extends State<MapPage> {
     LatLng startLocation = LatLng(position.latitude, position.longitude);
     print(" START LOCATION  ----------------->  $startLocation");
     print(" END LOCATION  ----------------->  $endLocation");
+
+    var customerAdress =
+        Provider.of<AddressesProvider>(context, listen: false).orderAddress;
+
+    var restaurantAdress =
+        Provider.of<AddressesProvider>(context, listen: false)
+            .restaurantAddress;
+    print(
+        "------> CUSTOMER_ADRESS = $customerAdress   ----  Restaurant_ADRES = $restaurantAdress");
+
+    LatLng destination = LatLng(0.0, 0.0);
+
+    List<Location> custAdress = await locationFromAddress(customerAdress);
+    List<Location> restAdress = await locationFromAddress(restaurantAdress);
+
+    LatLng customerLATLONG =
+        LatLng(custAdress.first.latitude, custAdress.first.longitude);
+    LatLng restaurantLATLONG =
+        LatLng(restAdress.first.latitude, restAdress.first.longitude);
+
+    if (widget.courrierState == 0) {
+      destination = restaurantLATLONG;
+    } else if (widget.courrierState == 1) {
+      destination = customerLATLONG;
+    }
+
+    endLocation = destination;
 
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
       googleAPiKey,
@@ -217,7 +256,12 @@ class HomePageState extends State<MapPage> {
                 ),
                 onPressed: () async {
                   /*;*/
-                  Position position = await _determinePosition(context);
+                  getDirections(
+                      context); //fetch direction polylines from Google API
+                  Position position = await _determinePosition(
+                      widget.firstEndLocation!,
+                      widget.secondEndLocation!,
+                      widget.courrierState!);
                   _gotoLocation(
                     LatLng(position.latitude, position.longitude).latitude,
                     LatLng(position.latitude, position.longitude).longitude,
@@ -226,8 +270,8 @@ class HomePageState extends State<MapPage> {
                     polylines.clear();
                   });
 
-                  Timer.periodic(
-                      const Duration(seconds: 5), (Timer t) => getDirections());
+                  Timer.periodic(const Duration(seconds: 5),
+                      (Timer t) => getDirections(context));
 
                   Timer.periodic(
                       const Duration(seconds: 5), (Timer t) => upDateMarkers());
@@ -339,7 +383,8 @@ var radiusValue = 3000.0;
 }
 */
 
-Future<Position> _determinePosition(BuildContext context) async {
+Future<Position> _determinePosition(
+    String customerAdress, String restaurantAdress, int courrierState) async {
   bool serviceEnabled;
   LocationPermission permission;
   serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -363,20 +408,35 @@ Future<Position> _determinePosition(BuildContext context) async {
 
   print(position);
 
-  obtainPlaceDirectionDetails(context, startLocation, endLocation);
+  // LatLng destination = _takeDestfromProvider(context);
+
+  print(
+      "------> CUSTOMER_ADRESS = $customerAdress   ----  Restaurant_ADRES = $restaurantAdress");
+
+  LatLng destination = LatLng(0.0, 0.0);
+
+  List<Location> custAdress = await locationFromAddress(customerAdress);
+  List<Location> restAdress = await locationFromAddress(restaurantAdress);
+
+  LatLng customerLATLONG =
+      LatLng(custAdress.first.latitude, custAdress.first.longitude);
+  LatLng restaurantLATLONG =
+      LatLng(restAdress.first.latitude, restAdress.first.longitude);
+
+  if (courrierState == 0) {
+    destination = restaurantLATLONG;
+  } else if (courrierState == 1) {
+    destination = customerLATLONG;
+  }
+
+  obtainPlaceDirectionDetails(customerAdress, restaurantAdress, courrierState);
 
   return position;
 }
+/*
 
-// COMMENTLER
+Future<LatLng> _takeDestfromProvider(BuildContext context) async {
 
-Future<DirectionDetails> obtainPlaceDirectionDetails(
-    BuildContext context, LatLng initPos, LatLng finalPos) async {
-  var mapKey = "AAIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
-  Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.best);
-  LatLng startLocation = LatLng(position.latitude, position.longitude);
-  print("iste bu : ${startLocation.latitude}");
 
   var customerAdress =
       Provider.of<AddressesProvider>(context, listen: false).orderAddress;
@@ -392,18 +452,51 @@ Future<DirectionDetails> obtainPlaceDirectionDetails(
   List<Location> restAdress = await locationFromAddress(restaurantAdress);
 
   LatLng customerLATLONG =
-      LatLng(custAdress.first.latitude, custAdress.first.longitude);
+  LatLng(custAdress.first.latitude, custAdress.first.longitude);
   LatLng restaurantLATLONG =
-      LatLng(restAdress.first.latitude, restAdress.first.longitude);
+  LatLng(restAdress.first.latitude, restAdress.first.longitude);
 
-  // courrierState = courrierState + 1;
+  courrierState =
+      Provider.of<CourierStateProvider>(context, listen: false).courierState;
 
   if (courrierState == 0) {
     destination = restaurantLATLONG;
   } else if (courrierState == 1) {
     destination = customerLATLONG;
   }
-  print(destination);
+return destination;
+
+}
+*/
+
+// COMMENTLER
+
+Future<DirectionDetails> obtainPlaceDirectionDetails(
+    String customerAdress, String restaurantAdress, int courrierState) async {
+  // var mapKey = "AAIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
+  Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.best);
+  LatLng startLocation = LatLng(position.latitude, position.longitude);
+
+  print(
+      "------> CUSTOMER_ADRESS = $customerAdress   ----  Restaurant_ADRES = $restaurantAdress");
+
+  LatLng destination = LatLng(0.0, 0.0);
+
+  List<Location> custAdress = await locationFromAddress(customerAdress);
+  List<Location> restAdress = await locationFromAddress(restaurantAdress);
+
+  LatLng customerLATLONG =
+      LatLng(custAdress.first.latitude, custAdress.first.longitude);
+  LatLng restaurantLATLONG =
+      LatLng(restAdress.first.latitude, restAdress.first.longitude);
+
+  if (courrierState == 0) {
+    destination = restaurantLATLONG;
+  } else if (courrierState == 1) {
+    destination = customerLATLONG;
+  }
+  print("-------------DESTINATION $destination");
   String directionURL =
       "https://maps.googleapis.com/maps/api/directions/json?origin=${startLocation.latitude},${startLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=AIzaSyCy8ocZ7I8dZQ4-Xq-KUGmA1lF7a6aLuIU";
   var res = await http.get(Uri.parse(directionURL));
