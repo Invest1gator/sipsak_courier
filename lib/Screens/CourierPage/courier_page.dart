@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:courier_app/Location/CourierBuildOptimumMap.dart';
 import 'package:courier_app/Screens/CourierPage/product_product.dart';
 import 'package:courier_app/local_notificaiton_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -953,23 +954,33 @@ class _CourierPageState extends State<CourierPage> {
           color: Colors.white,
         ),
         onPressed: () {
-          Navigator.push(
-            context,
-            PageTransition(
-              type: PageTransitionType.rightToLeftWithFade,
-              duration: const Duration(milliseconds: 200),
-              child: CourierBuildMap(
-                  secondEndLocation:
-                      Provider.of<AddressesProvider>(context, listen: false)
-                          .orderAddress,
-                  firstEndLocation:
-                      Provider.of<AddressesProvider>(context, listen: false)
-                          .restaurantAddress,
-                  courrierState:
-                      Provider.of<CourierStateProvider>(context, listen: false)
-                          .courierState),
-            ),
-          );
+          if (productBasketList.isEmpty) {
+            Navigator.push(
+                context,
+                PageTransition(
+                  type: PageTransitionType.rightToLeftWithFade,
+                  duration: const Duration(milliseconds: 200),
+                  child: CourierBuildOptimumMap(),
+                ));
+          } else {
+            Navigator.push(
+              context,
+              PageTransition(
+                type: PageTransitionType.rightToLeftWithFade,
+                duration: const Duration(milliseconds: 200),
+                child: CourierBuildMap(
+                    secondEndLocation:
+                        Provider.of<AddressesProvider>(context, listen: false)
+                            .orderAddress,
+                    firstEndLocation:
+                        Provider.of<AddressesProvider>(context, listen: false)
+                            .restaurantAddress,
+                    courrierState: Provider.of<CourierStateProvider>(context,
+                            listen: false)
+                        .courierState),
+              ),
+            );
+          }
         },
       ),
     );
