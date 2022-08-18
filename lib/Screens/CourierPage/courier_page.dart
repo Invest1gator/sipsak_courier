@@ -830,7 +830,7 @@ class _CourierPageState extends State<CourierPage> {
                 ? isArrivedUser
                     ? GestureDetector(
                         onTap: () async {
-                          //
+                          // YAP ŞUNU
 
                           Provider.of<CourierStateProvider>(context,
                                   listen: false)
