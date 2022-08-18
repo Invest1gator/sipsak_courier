@@ -23,7 +23,7 @@ bool isArrivedBase = false;
 bool isArrivedUser = false;
 
 class CourierPage extends StatefulWidget {
-  const CourierPage({Key? key}) : super(key: key);
+  
 
   @override
   State<CourierPage> createState() => _CourierPageState();
@@ -370,7 +370,7 @@ class _CourierPageState extends State<CourierPage> {
                                                           ),
                                                         ),
                                                       ),
-                                                      SizedBox(
+                                                      const SizedBox(
                                                         width: 5,
                                                       ),
                                                       isArrivedBase
