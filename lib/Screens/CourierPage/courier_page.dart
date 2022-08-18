@@ -908,12 +908,12 @@ class _CourierPageState extends State<CourierPage> {
               type: PageTransitionType.rightToLeftWithFade,
               duration: const Duration(milliseconds: 200),
               child: CourierBuildMap(
-                  firstEndLocation:
-                      Provider.of<AddressesProvider>(context, listen: false)
-                          .restaurantAddress,
                   secondEndLocation:
                       Provider.of<AddressesProvider>(context, listen: false)
                           .orderAddress,
+                  firstEndLocation:
+                      Provider.of<AddressesProvider>(context, listen: false)
+                          .restaurantAddress,
                   courrierState:
                       Provider.of<CourierStateProvider>(context, listen: false)
                           .courierState),
