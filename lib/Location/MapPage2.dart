@@ -109,7 +109,7 @@ LatLng centerOfCircle() {
 
   cc.addToCenterLocList(centerLocation); // Center Loc belirlendi.
 
-  return centerLocation!;
+  return centerLocation;
 }
 
 class CenterCandidateLoc {
