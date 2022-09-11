@@ -100,8 +100,7 @@ LatLng centerOfCircle() {
 
     cc.addToCenterCanList(CenterCandidateLoc(
         LatLng(twoDList[row1][0], twoDList[row1][1]), count));
-    print(
-        "---------------------------------------------ANAN" + count.toString());
+    print("-------------------------------------------" + count.toString());
   }
 
   centerLocation =
