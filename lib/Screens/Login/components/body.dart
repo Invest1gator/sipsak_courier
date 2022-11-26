@@ -97,7 +97,7 @@ class _BodyState extends State<Body> {
                   setState(() {
                     hasPassError = true;
                     _passError =
-                        'Şifreniz en az 6 karakter uzunluğunda olmalı.';
+                        'Şifreniz en az 6 karakter uzunluğunda olmalıdır.';
                   });
                 } else {
                   setState(() {
